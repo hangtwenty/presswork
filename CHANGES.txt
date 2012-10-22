@@ -1,0 +1,19 @@
+v0.1   -- Initial release.
+v1.0   -- No known bugs.
+v1.1   -- Support giving a seed to markov chain.
+v1.2   -- Fix giving a seed
+v1.3   -- Further improvements to generation with seed
+v1.4   -- Don't write to stderr on trivial messages
+v1.5   -- Make db loading use the .py file's directory
+v1.5.1 -- Remove sample database filled with nonsense
+v1.5.2 -- Small cosmetic changes. Also include empty db again, because it turns out to be necessary
+v1.6   -- Allow for database to be stored anywhere
+v1.6.1 -- Forgot to include README.md into the package. Sorry!
+v1.6.2 -- Make sure we're not saving the db to 'None'
+v1.6.3 -- Actually dump db where we expect it
+v1.7   -- Improve efficiency and sentence detection by leaps
+v1.7.1 -- Fix a bug where whitespace would go missing when completing sentences
+v1.7.2 -- Fix a bug introduced with the last release
+v1.7.3 -- Improved performance on py2 and fixed db compatibility bug
+v1.7.4 -- Quickfix for rounding errors on py2
+v1.7.5 -- Quickfix for the quickfix (from __future__ has to be at the top)
