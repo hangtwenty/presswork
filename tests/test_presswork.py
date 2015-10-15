@@ -12,10 +12,9 @@ import unittest
 
 from presswork import presswork
 
+SentencesTestCase = namedtuple('SentencesTestCase', ['text', 'phrase_in_each_sentence'])
 
-SentencesCase = namedtuple('SentencesCase', ['text', 'phrase_in_each_sentence'])
-
-CASE_A = SentencesCase(
+CASE_A = SentencesTestCase(
     text="""
 Beautiful is better than ugly.
 Explicit is better than implicit.
@@ -66,9 +65,9 @@ class TestMarkovChainTextMaker(unittest.TestCase):
         """
         sentences_case = CASE_A
         _sentences = sentences_case.text.strip().splitlines()
-        assert all(sentences_case.phrase_in_each_sentence in sentence for sentence in _sentences),\
-            ("SentencesCase sanity check failed: "
-            "a SentencesCase should have some phrase in each sentence (line)!")
+        assert all(sentences_case.phrase_in_each_sentence in sentence for sentence in _sentences), \
+            ("SentencesTestCase sanity check failed: "
+             "a SentencesTestCase should have some phrase in each sentence (line)!")
 
         # TODO(hangtwenty) parametrize on "sentences_case"
         self.text_maker.database_init(sentences_case.text)
@@ -89,11 +88,11 @@ class TestMarkovChainTextMaker(unittest.TestCase):
         sentences_case = CASE_A
         assert sentences_case.phrase_in_each_sentence not in text_maker.make_sentence()
         text_maker.database_init(sentences_case.text)
-        assert sentences_case.phrase_in_each_sentence in  text_maker.make_sentence()
+        assert sentences_case.phrase_in_each_sentence in text_maker.make_sentence()
         text_maker.database_dump()
         text_maker.database_clear()
         text_maker.database_init(sentences_case.text)
-        assert sentences_case.phrase_in_each_sentence in  text_maker.make_sentence()
+        assert sentences_case.phrase_in_each_sentence in text_maker.make_sentence()
 
         # dump DB, use another instance to load DB...
         text_maker.database_dump()
@@ -104,11 +103,11 @@ class TestMarkovChainTextMaker(unittest.TestCase):
 
         text_maker.database_clear()
         # even though we just deleted the db file, db is still in memory...
-        assert sentences_case.phrase_in_each_sentence in  self.text_maker.make_sentence()
+        assert sentences_case.phrase_in_each_sentence in self.text_maker.make_sentence()
 
     def tearDown(self):
         self.text_maker.database_dump()  # <-- returns OK regardless of whether DB already exists
-        self.text_maker.database_clear() # <-- but let's delete the file at the end anyways
+        self.text_maker.database_clear()  # <-- but let's delete the file at the end anyways
 
 
 if __name__ == '__main__':

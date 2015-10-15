@@ -22,6 +22,8 @@ To use it, you can simply do
     # To let the markov chain generate some text, execute
     mc.generateString()
 
+**See also `tests/test_presswork.py` for more usage examples.**
+
 presswork persists the Markov model using pickle, dumping a dictionary.
 (A tree structure of probabilities and functions, that can easily be reloaded/unpickled 
 to train the model on more data, later).
