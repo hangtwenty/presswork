@@ -70,7 +70,7 @@ class TestMarkovChainTextMaker(unittest.TestCase):
             ("SentencesCase sanity check failed: "
             "a SentencesCase should have some phrase in each sentence (line)!")
 
-        # TODO(mfloering) parametrize on "sentences_case"
+        # TODO(hangtwenty) parametrize on "sentences_case"
         self.text_maker.database_init(sentences_case.text)
 
         for x in range(0, len(_sentences) * 3):
@@ -85,7 +85,7 @@ class TestMarkovChainTextMaker(unittest.TestCase):
 
         text_maker = presswork.MarkovChainTextMaker.with_persistence()
 
-        # TODO(mfloering) this should be saving into a pytest tmpdir and get a cleanup...
+        # TODO(hangtwenty) this should be saving into a pytest tmpdir and get a cleanup...
         sentences_case = CASE_A
         assert sentences_case.phrase_in_each_sentence not in text_maker.make_sentence()
         text_maker.database_init(sentences_case.text)

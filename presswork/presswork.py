@@ -43,6 +43,8 @@ def _default_word_probability_dict():
 
 def _one():
     return 1.0
+
+
 # </factories>
 
 
@@ -50,7 +52,7 @@ class EndOfChainException(Exception):
     pass
 
 
-class WordTokenizer(TreebankWordTokenizer):  # TODO(mfloering)
+class WordTokenizer(TreebankWordTokenizer):  # TODO(hangtwenty)
     """ Split text on whitespace and more. `tokenize` method returns a list of words.
 
     Default tokenizer that works well here is basically Treebank,
@@ -59,10 +61,8 @@ class WordTokenizer(TreebankWordTokenizer):  # TODO(mfloering)
     so we don't need to decompose "can't" into its two meaningful tokens.
     We don't care. We pass "don't" and "can't" through.
     """
-    # TODO(mfloering) contractions support - from config file ;)
-    # CONTRACTIONS2 = []
-    # CONTRACTIONS3 = []
-    # CONTRACTIONS4 = []
+    # TODO(hangtwenty) contractions support - from config file ;)
+    # CONTRACTIONS = []
 
     @collecting
     def tokenize(self, text):
@@ -84,7 +84,7 @@ class MarkovChainTextMaker(object):
     def __init__(self, db_file_path=None, window=2):
         self.window = window
 
-        # TODO(mfloering) get rid of database storage until/unless someone calls dump.
+        # TODO(hangtwenty) get rid of database storage until/unless someone calls dump.
 
         self.db = None
         self.db_file_path = db_file_path
@@ -165,7 +165,7 @@ class MarkovChainTextMaker(object):
     def make_sentence(self):
         """ Generate a "sentence" with the database of known text """
 
-        # TODO(mfloering) use RE_PUNCTUATION.match() to replace all "<space><punct>" with "<punct>"
+        # TODO(hangtwenty) use RE_PUNCTUATION.match() to replace all "<space><punct>" with "<punct>"
         # __or__ make it so that you don't just do " ".join()... and iterate manually, only
         # and only add space between words... (that seems more efficient probably)
 
