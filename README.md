@@ -4,25 +4,27 @@ presswork
 Presswork supplies an easy-to-use implementation of a Markov chain text generator.
 It is intended (and slightly tweaked) to help you have fun with journalistic writing.
 
-Note, it is not optimized for outputting well-formatted text without human intervention.
-It leaves spaces around punctuation for example, assuming you'll come back and edit
-the text before doing something with it.
+NOTE: I found another Python library like this one, but with more features --
+see **[Barrucadu/markov](https://github.com/Barrucadu/markov).** (It supports not just sentence tokenization,
+ but also paragraph tokenization). You may want to try that too.
 
-PyMarkovChain supplies an easy-to-use implementation of a markov chain text generator.  
-To use it, you can simply do
+This example code ...
 
     #!/usr/bin/env python
 
     from presswork import MarkovChainTextMaker 
     # Create an instance of the Markov chain text generator.
     # By default it has no persistence, 
-    # store and load its database files to. You probably want to give it another location, like so:
-    text_maker = MarkovChainTextMaker(db_file_path="/tmp/markov")
+    but if you give it a file path it'll save/reload its database.
+    text_maker = MarkovChainTextMaker("/tmp/markov")
+    
     # Let's say we have this input text ... (You want a much longer corpus for cool stuff to happen)
     corpus = "Beautiful is better than ugly. Explicit is better than implicit."
+    
     # To generate the markov chain's language model ...
     text_maker.database_init(corpus)
-    # Generate 5 silly sentences
+    
+    # Generate some silly sentences
     print text_maker.make_sentences(2)
 
 Might output ...
@@ -33,28 +35,38 @@ Might output ...
 
 presswork persists the Markov model using pickle, dumping a dictionary.
 (A tree structure of probabilities and functions, that can easily be reloaded/unpickled 
-to train the model on more data, later).
-
-This entails that you have to use the same version of python to store the data and to
+to train the model on more data, later). This entails that you have to use the same version of python to store the data and to
 restore the data, as pickle is one of those things that have changed from python2 to python3.
+
+If you're just generating text for fun, I recommend using the little **web app** (instructions below).
+
+Note, it is not optimized for outputting well-formatted text without human intervention.
+It leaves spaces around punctuation for example, assuming you'll come back and edit
+the text before doing something with it.
 
 setup
 =====
 
 To install and use,
 
-    * Grab the GitHub repository. (I feel this code is not utilitarian enough to put it on PyPI)
-      `cd` into the directory.
-    * Run script to download required [NLTK](http://www.nltk.org/) corpora: `python ./scripts/download_corpora.py`
-    * Install `presswork`: `pip install .`
-    * Use from code or via thin web application:
-        * From code: `import presswork` and do your thing - see usage example above
-        * Web application: `python server/app.py` or for another port like 8080, `python server/app.py 8080`
+* Grab the GitHub repository. (I feel this code is not utilitarian enough to put it on PyPI)
+  `cd` into the directory.
+* Run script to download required [NLTK](http://www.nltk.org/) corpora: `python ./scripts/download_corpora.py`
+* Install `presswork`: `pip install .`
+* Use from code or via thin web application:
+    * From code: `import presswork` and do your thing - see usage example above
+    * web application, see below
 
 web application
 ===============
 
-Notes:
+    $ python flask_app/app.py
+    
+Or pick a different port:
+
+    $ python flask_app/app.py 8080
+    
+Note that ...
 
 * Suitable only for local usage, don't deploy it anywhere.
 * As currently written, it doesn't use a database, so each text submission is a clean slate.
@@ -95,4 +107,6 @@ background
 * Forked permanently from [TehMillhouse/PyMarkovChain](https://github.com/TehMillhouse/PyMarkovChain)
     * Added tests
     * Added sentence tokenization support (via NLTK)
-    * Added web server for playing around
+    * Added web server for playing around easily. My preferred way to use this is to keep generating
+    text, selectively grabbing the bits I like, sometimes feeding things back in ... but always
+    sort of "collaging" text it generates, to make an entertaining result
