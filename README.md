@@ -60,6 +60,8 @@ maybe I will do them:
 
 * Main code
     * Format punctuation better so there isn't extra whitespace around every punctuation mark
+    * Configurable support for different tokenizers. (Word tokenizer could be swapped out,
+    sentence tokenizer could also be swapped out)
     * Configurable support for *stopwords*
     * Configurable support for handling contractions (i.e. option to replace "don't" with "do not"
     in case that makes for better text generation with your input corpus)
