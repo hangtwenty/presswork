@@ -8,9 +8,14 @@ try:
 except ImportError:
     from distutils.core import setup
 
+github_url = 'https://github.com/hangtwenty/presswork'
 
-with open('README.md') as readme_file:
-    readme = readme_file.read()
+try:
+    with open('README.md') as readme_file:
+        readme = readme_file.read()
+except IOError:
+    readme = "ERROR: README.md not found! Please report here: " + \
+        github_url
 
 requirements = [
     # TODO: put package requirements here
@@ -26,7 +31,7 @@ setup(
     description="Presswork is a Markov Chain text generator for impersonating prose and journalistic writing",
     long_description=readme,
     author="hangtwenty",
-    url='https://github.com/hangtwenty/presswork',
+    url=github_url,
     packages=[
         'presswork',
     ],
