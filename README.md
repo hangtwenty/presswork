@@ -13,14 +13,21 @@ To use it, you can simply do
 
     #!/usr/bin/env python
 
-    from presswork import presswork
-    # Create an instance of the markov chain. By default, it uses MarkovChain.py's location to
+    from presswork import MarkovChainTextMaker 
+    # Create an instance of the Markov chain text generator.
+    # By default it has no persistence, 
     # store and load its database files to. You probably want to give it another location, like so:
-    mc = MarkovChainTextMaker("/tmp/markov")
+    text_maker = MarkovChainTextMaker(db_file_path="/tmp/markov")
+    # Let's say we have this input text ... (You want a much longer corpus for cool stuff to happen)
+    corpus = "Beautiful is better than ugly. Explicit is better than implicit."
     # To generate the markov chain's language model ...
-    mc.generateDatabase("This is a string of Text. It won't generate an interesting database though.")
-    # To let the markov chain generate some text, execute
-    mc.generateString()
+    text_maker.database_init(corpus)
+    # Generate 5 silly sentences
+    print text_maker.make_sentences(2)
+
+Might output ...
+
+    Explicit is better than ugly .  Beautiful is better than implicit .
 
 **See also `tests/test_presswork.py` for more usage examples.**
 
@@ -73,10 +80,19 @@ maybe I will do them:
         * Clear database file
         * Switch between persistent database files
 
+development
+===========
+
+* Run tests with pytest (`py.test` in this directory).
+* Run tests of supported Python versions, from clean slate, with tox (`tox` in this directory).
+
 background
 ==========
 
-* Forked from [TehMillhouse/PyMarkovChain](https://github.com/TehMillhouse/PyMarkovChain)
 * Purpose: generate text for a blog poking fun at reviews of electronic music,
-which are often very ... inspired? Whimsical? Off-the-wall? I only wrote a few,
-but check them out (warning, contains graphic content): [Presswork](http://presswork.tumblr.com/)
+    which are often very ... inspired? Whimsical? Off-the-wall? I only wrote a few,
+    but check them out (warning, contains some graphic content!): [Presswork](http://presswork.tumblr.com/)
+* Forked permanently from [TehMillhouse/PyMarkovChain](https://github.com/TehMillhouse/PyMarkovChain)
+    * Added tests
+    * Added sentence tokenization support (via NLTK)
+    * Added web server for playing around

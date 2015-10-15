@@ -79,9 +79,10 @@ class WordTokenizer(TreebankWordTokenizer):  # TODO(hangtwenty)
 
 class MarkovChainTextMaker(object):
     DEFAULT_DB_FILE_PATH = os.path.join(os.path.dirname(__file__), "presswork_markov_db")
+    DEFAULT_WINDOW_SIZE_WORDS = 2
 
     # data structure for this db is dictionaries nested 1 deep: `{words: {word: probability}}`
-    def __init__(self, db_file_path=None, window=2):
+    def __init__(self, db_file_path=None, window=DEFAULT_WINDOW_SIZE_WORDS):
         self.window = window
 
         # TODO(hangtwenty) get rid of database storage until/unless someone calls dump.
