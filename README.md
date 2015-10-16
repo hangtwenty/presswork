@@ -1,12 +1,12 @@
 presswork
 =============
 
-Presswork supplies an easy-to-use implementation of a Markov chain text generator.
-It is intended (and slightly tweaked) to help you have fun with journalistic writing.
+Presswork provides an easy-to-use Markov chain text generator.
+It also supplies a little Flask web app that you might find convenient for playing with text.
 
 NOTE: I found another Python library like this one, but with more features --
 see **[Barrucadu/markov](https://github.com/Barrucadu/markov).** (It supports not just sentence tokenization,
- but also paragraph tokenization). You may want to try that too.
+ but also paragraph tokenization). You may want to try that if this library doesn't meet your needs.
 
 This example code ...
 
