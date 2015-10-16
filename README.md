@@ -60,18 +60,28 @@ To install and use,
 web application
 ===============
 
+To play with text very fast, I recommend using the web application.
+
     $ python flask_app/app.py
-    
+
 Or pick a different port:
 
     $ python flask_app/app.py 8080
-    
-Note that ...
+
+![Input to presswork web app](.readme_images/presswork_web_app_input.png)
+![Output from presswork web app](.readme_images/presswork_web_app_output.png)
+
+Caveats:
 
 * Suitable only for local usage, don't deploy it anywhere.
 * As currently written, it doesn't use a database, so each text submission is a clean slate.
 If you want to "accumulate" text just paste more in the textarea.
+* I haven't tweaked Flask stuff so too much text won't work. (i.e. long books)
 
+To get serious about making silly text, I would recommend writing a script;
+having that script read from a file;
+editing that file in your favorite plain text editor (wherever copying/pasting is easy);
+and frequently saving that file & retriggering that script.
 
 room for improvement!
 ============
