@@ -51,8 +51,8 @@ To install and use,
 
 * Grab the GitHub repository. (I feel this code is not utilitarian enough to put it on PyPI)
   `cd` into the directory.
+* Install `presswork`: `pip install .` (you should probably do this in a [virtualenv](https://virtualenv.pypa.io/en/latest/))
 * Run script to download required [NLTK](http://www.nltk.org/) corpora: `python ./scripts/download_corpora.py`
-* Install `presswork`: `pip install .`
 * Use from code or via thin web application:
     * From code: `import presswork` and do your thing - see usage example above
     * web application, see below
