@@ -66,6 +66,13 @@ def test_high_level_behavior(text_maker, test_case):
         for word in output_text.split():
             assert word in test_case.text
 
+
+def test_post_process():
+    res = presswork.MarkovChainTextMaker.post_process(
+        'foo . bar test : ,! baz ! hi yepyep: blah ; hi')
+    assert res == "foo. bar test: ,! baz! hi yepyep: blah; hi"
+
+
 @pytest.mark.parametrize(('test_case'), [TEST_CASE_ZEN_OF_PYTHON])
 def test_database_persistence(text_maker, test_case):
     assert test_case.phrase_in_each_sentence not in text_maker.make_sentence()

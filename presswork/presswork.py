@@ -8,22 +8,26 @@ Note from hangtwenty:
 """
 
 from __future__ import division
-from funcy import collecting
-from nltk import TreebankWordTokenizer
-import nltk
-import regex
+
 
 try:
     # try to use cPickle for better performance (python2)
     import cPickle as pickle
 except ImportError:
     import pickle
+
+from collections import defaultdict
 import logging
 import os
 import random
-from collections import defaultdict
+import re
 
-RE_PUNCTUATION = regex.compile(r'\p{P}')
+from funcy import collecting
+from nltk import TreebankWordTokenizer
+import nltk
+
+RE_PUNCTUATION = re.compile(ur'\p{P}')
+EMPTY_STRING = u''
 
 
 # <factories>  # Define some factories as functions so we can easily pickle them
@@ -114,9 +118,9 @@ class MarkovChainTextMaker(object):
         # I'm using the database to temporarily store word counts
         text_input_as_string = \
             self._sentence_tokenizer.tokenize(text_input_as_string)
-        # We're using the empty string ('') as special symbol for the beginning
+        # We're using the empty string (EMPTY_STRING) as special symbol for the beginning
         # of a sentence
-        self.db[('',)][''] = 0.0
+        self.db[(EMPTY_STRING,)][EMPTY_STRING] = 0.0
         for line in text_input_as_string:
             words = self._word_tokenizer.tokenize(line)
             if len(words) == 0:
@@ -161,16 +165,13 @@ class MarkovChainTextMaker(object):
         sentences = []
         for _ in range(0, number):
             sentences.append(self.make_sentence())
-        return "  ".join(sentences)
+        generated = u"  ".join(sentences)
+        return MarkovChainTextMaker.post_process(generated)
 
     def make_sentence(self):
         """ Generate a "sentence" with the database of known text """
-
-        # TODO(hangtwenty) use RE_PUNCTUATION.match() to replace all "<space><punct>" with "<punct>"
-        # __or__ make it so that you don't just do " ".join()... and iterate manually, only
-        # and only add space between words... (that seems more efficient probably)
-
-        return self._accumulate_with_seed(('',))
+        generated = self._accumulate_with_seed((EMPTY_STRING,))
+        return MarkovChainTextMaker.post_process(generated)
 
     def make_sentence_with_seed(self, seed):
         """ Generate a "sentence" with the database and a given word """
@@ -180,8 +181,21 @@ class MarkovChainTextMaker(object):
         words = seed.split()
         if (words[-1],) not in self.db:
             # The only possible way it won't work is if the last word is not known
-            raise EndOfChainException('Could not continue string: ' + seed)
-        return self._accumulate_with_seed(words)
+            raise EndOfChainException(u'Could not continue string: ' + seed)
+        generated = self._accumulate_with_seed(words)
+        return MarkovChainTextMaker.post_process(generated)
+
+    @staticmethod
+    def post_process(string):
+        string = MarkovChainTextMaker._remove_space_before_phrase_end_punctuation(string)
+        return string
+
+    @staticmethod
+    def _remove_space_before_phrase_end_punctuation(string):
+        """ Replace " . " with ". ", and so on, for other punctuation that probably ends sentences
+        or clauses.
+        """
+        return re.sub(r'\s([.,!?:;](?:\s|$))', r'\1', string)
 
     def _accumulate_with_seed(self, seed):
         """ Accumulate the generated sentence with a given single word as a
@@ -195,11 +209,11 @@ class MarkovChainTextMaker(object):
 
     def _next_word(self, last_words):
         last_words = tuple(last_words)
-        if last_words != ('',):
+        if last_words != (EMPTY_STRING,):
             while last_words not in self.db:
                 last_words = last_words[1:]
                 if not last_words:
-                    return ''
+                    return EMPTY_STRING
         probmap = self.db[last_words]
         sample = random.random()
         # since rounding errors might make us miss out on some words
