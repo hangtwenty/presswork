@@ -44,6 +44,19 @@ Note, it is not optimized for outputting well-formatted text without human inter
 It leaves spaces around punctuation for example, assuming you'll come back and edit
 the text before doing something with it.
 
+background
+==========
+
+* Purpose: generate text for a blog poking fun at reviews of electronic music,
+    which are often very ... inspired? Whimsical? Off-the-wall? I only wrote a few,
+    but check them out (warning, contains some graphic content!): [Presswork](http://presswork.tumblr.com/)
+* Forked permanently from [TehMillhouse/PyMarkovChain](https://github.com/TehMillhouse/PyMarkovChain)
+    * Added tests
+    * Added sentence tokenization support (via NLTK)
+    * Added web server for playing around easily. My preferred way to use this is to keep generating
+    text, selectively grabbing the bits I like, sometimes feeding things back in ... but always
+    sort of "collaging" text it generates, to make an entertaining result
+
 setup
 =====
 
@@ -107,16 +120,3 @@ development
 
 * Run tests with pytest (`py.test` in this directory).
 * Run tests of supported Python versions, from clean slate, with tox (`tox` in this directory).
-
-background
-==========
-
-* Purpose: generate text for a blog poking fun at reviews of electronic music,
-    which are often very ... inspired? Whimsical? Off-the-wall? I only wrote a few,
-    but check them out (warning, contains some graphic content!): [Presswork](http://presswork.tumblr.com/)
-* Forked permanently from [TehMillhouse/PyMarkovChain](https://github.com/TehMillhouse/PyMarkovChain)
-    * Added tests
-    * Added sentence tokenization support (via NLTK)
-    * Added web server for playing around easily. My preferred way to use this is to keep generating
-    text, selectively grabbing the bits I like, sometimes feeding things back in ... but always
-    sort of "collaging" text it generates, to make an entertaining result
