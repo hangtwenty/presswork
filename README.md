@@ -109,13 +109,15 @@ Caveats:
 
 * Suitable only for local usage, don't deploy it anywhere.
 * As currently written, it doesn't use a database, so each text submission is a clean slate.
-If you want to "accumulate" text just paste more in the textarea.
-* I haven't tweaked Flask stuff so too much text won't work. (i.e. long books)
+If you want to "accumulate" text just copy the output and paste into text area. T
+* I haven't optimized the app at all, and long text will probably hang a long time (i.e. whole long books)
 
 To get serious about making silly text, I would recommend writing a script;
 having that script read from a file;
 editing that file in your favorite plain text editor (wherever copying/pasting is easy);
 and frequently saving that file & retriggering that script.
+You could use the `presswork` module easily for this.
+Check the `flask_app` module for example usage and go from there.
 
 room for improvement!
 ============
