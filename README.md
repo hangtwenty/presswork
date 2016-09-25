@@ -51,11 +51,32 @@ background
     which are often very ... inspired? Whimsical? Off-the-wall? I only wrote a few,
     but check them out (warning, contains some graphic content!): [Presswork](http://presswork.tumblr.com/)
 * Forked permanently from [TehMillhouse/PyMarkovChain](https://github.com/TehMillhouse/PyMarkovChain)
-    * Added tests
     * Added sentence tokenization support (via NLTK)
+    * Added unit tests (86% test coverage of `presswork` module for now)
     * Added web server for playing around easily. My preferred way to use this is to keep generating
     text, selectively grabbing the bits I like, sometimes feeding things back in ... but always
     sort of "collaging" text it generates, to make an entertaining result
+
+### Test coverage snapshot
+
+```
+$ py.test --cov presswork
+======================================= test session starts ========================================
+platform darwin -- Python 2.7.10, pytest-3.0.1, py-1.4.31, pluggy-0.3.1
+rootdir: /Users/mfloering/Workspace/presswork, inifile:
+plugins: cov-2.3.1
+collected 3 items
+
+tests/test_presswork.py ...
+
+---------- coverage: platform darwin, python 2.7.10-final-0 ----------
+Name                     Stmts   Miss  Cover
+--------------------------------------------
+presswork/__init__.py        1      0   100%
+presswork/presswork.py     131     18    86%
+--------------------------------------------
+TOTAL                      132     18    86%
+```
 
 setup
 =====
@@ -114,6 +135,7 @@ maybe I will do them:
         * Pick filepath
         * Clear database file
         * Switch between persistent database files
+    * some tests
 
 development
 ===========
