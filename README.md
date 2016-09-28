@@ -137,7 +137,7 @@ maybe I will do them:
         * Pick filepath
         * Clear database file
         * Switch between persistent database files
-    * some tests
+    * Some tests for the web application
 
 development
 ===========
