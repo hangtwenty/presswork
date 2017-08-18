@@ -17,9 +17,9 @@ background
 ==========
 
 * Purpose: generate some text - specifically I wanted to write some parodies of music reviews, specifically of some electronic and experimental music I love. I love the music, but the reviews can be a bit... funny. So I wanted to poke more fun. I published a couple of posts, and hand some laughs with friends. Here: [Presswerk](http://presswerk.tumblr.com/). I was going to do more, but I turned my attention back to making new music.
-* Original Markov Chain class forked from [TehMillhouse/PyMarkovChain](https://github.com/TehMillhouse/PyMarkovChain)
+* Originally was forked from [TehMillhouse/PyMarkovChain](https://github.com/TehMillhouse/PyMarkovChain)
     * Added sentence tokenization support (via NLTK)
-    * Added unit tests (86% test coverage of the module)
+    * Added unit tests (86% test coverage of `presswork` module for now)
     * Added little Flask web app for playing around rapidly
 
 setup
