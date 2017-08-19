@@ -45,7 +45,7 @@ Running the Flask app locally is easy.
 
     # ASSUMPTION: you have already done `pip install -r requirements-server.txt`
     $ python flask_app/app.py 8080
-                             #^^^^ pick any port you want. defaults to 80.
+                             #^^^^ pick any port you want. defaults to Flask's default (5000)
 
 Then in your web browser, go to http://localhost:8080, or whatever port, and play around. Here is a snapshot from [when I was jamming with reviews of Oneohtrix Point Never](http://presswerk.tumblr.com/).
 
