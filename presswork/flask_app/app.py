@@ -10,7 +10,7 @@ from flask.ext.wtf.csrf import CsrfProtect
 from wtforms import validators, StringField, \
     IntegerField
 
-from presswork.presswork import MarkovChainTextMaker
+from presswork.text_maker.impl.pymarkovchain_with_nltk import PyMarkovChainWithNLTK
 
 app = Flask(__name__)
 csrf = CsrfProtect(app=app)
@@ -39,7 +39,7 @@ class MarkovChainTextMakerForm(Form):
 def markov():
     form = MarkovChainTextMakerForm()
     if form.validate_on_submit():
-        text_maker = MarkovChainTextMaker(db_file_path=None, window=form.window.data)
+        text_maker = PyMarkovChainWithNLTK(db_file_path=None, window=form.window.data)
         text_maker.database_init(form.text.data)
         text_made = text_maker.make_sentences(form.count_of_sentences_to_make.data)
         text_made_title = text_maker.make_sentence().strip('.')

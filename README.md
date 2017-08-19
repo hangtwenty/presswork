@@ -33,7 +33,7 @@ To install and use,
 * Install dependencies.
     * `pip install -r requirements.txt`
     * If you plan to use the [Flask](http://flask.pocoo.org) web app, you need to also do `pip install -r requirements_server.txt`
-* Download required [NLTK](http://www.nltk.org/) corpora. There's a script in here to help: `python ./scripts/download_corpora.py`
+* Download required [NLTK](http://www.nltk.org/) corpora. There's a script in here to help: `python ./scripts/download_nltk_corpora.py`
 
 
 recommended usage: play with the web app locally
