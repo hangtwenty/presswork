@@ -19,7 +19,6 @@ The local [Flask](http://flask.pocoo.org) app is better though. More details on 
 background
 ==========
 
-
 * Purpose: generate some text - specifically I wanted to write some parodies of music reviews, specifically of some electronic and experimental music I love. I love the music, but the reviews can be a bit... funny. So I wanted to poke more fun. 
     * I couple of posts, and hand some laughs with friends. Here: [Presswerk](http://presswerk.tumblr.com/). I was going to do more, but I turned my attention back to making new music.
     * Code has been dormant since hacking things together at  Hackathon-ish setting in 2016.
