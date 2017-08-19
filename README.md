@@ -5,7 +5,7 @@ This project was just for fun. It provides an easy-to-use text generator using M
 
 Goal was ease of use. Here's some easy usage from code:
 
-    >>> from presswork import MarkovChainTextMaker 
+    >>> from presswork import MarkovChainTextMaker
     >>> text_maker = MarkovChainTextMaker("/tmp/markov")
     >>> text_maker.database_init("Beautiful is better than ugly. Explicit is better than implicit.")
     >>> print text_maker.make_sentences(2)
@@ -32,7 +32,7 @@ To install and use,
 * `pip install -e .` to install `presswork` (in a [virtualenv](https://virtualenv.pypa.io/en/latest/))
 * Install dependencies.
     * `pip install -r requirements.txt`
-    * If you plan to use the [Flask](http://flask.pocoo.org) web app, you need to also do `pip install -r requirements-server.txt`
+    * If you plan to use the [Flask](http://flask.pocoo.org) web app, you need to also do `pip install -r requirements_server.txt`
 * Download required [NLTK](http://www.nltk.org/) corpora. There's a script in here to help: `python ./scripts/download_corpora.py`
 
 
@@ -111,7 +111,7 @@ This library is rudimentary and just for fun. If I pick it back up to play with 
         * Pick any filepath
         * Select/autocomplete from filepaths used so far (enable workflow of easily switching between modes/presets)
         * Clear database file (back up to /tmp/ then clear)
-    * There are already tests for the `presswork` module but none for the Flask app. Could add some. 
+    * There are already tests for the `presswork` module but none for the Flask app. Could add some.
 
 development
 ===========

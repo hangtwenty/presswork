@@ -1,54 +1,54 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-# TODO: make this work.
+"""The setup script. Started from excellent boilerplate given by audreyr/cookiecutter-pypackage."""
 
-try:
-    from setuptools import setup
-except ImportError:
-    from distutils.core import setup
+from setuptools import setup, find_packages
 
-github_url = 'https://github.com/hangtwenty/presswork'
-
-try:
-    with open('README.md') as readme_file:
-        readme = readme_file.read()
-except IOError:
-    readme = "ERROR: README.md not found! Please report here: " + \
-        github_url
+with open('README.md') as readme_file:
+    readme = readme_file.read()
 
 requirements = [
-    # TODO: put package requirements here
+    'Click>=6.0',
+]
+
+setup_requirements = [
+    'pytest-runner',
 ]
 
 test_requirements = [
-    # TODO: put package test requirements here
+    'pytest',
 ]
 
 setup(
     name='presswork',
-    version='0.1.0',
-    description="Presswork is a Markov Chain text generator for impersonating prose and journalistic writing",
+    version='0.2.0',
+    description="Little interactive tool(s) for text generation using Markov chains. A little Flask app (only for local use), and a CLI. Markov implementations are separate and pluggable. Have fun!",
     long_description=readme,
-    author="hangtwenty",
-    url=github_url,
-    packages=[
-        'presswork',
-    ],
-    package_dir={'presswork': 'presswork'},
+    author="Michael Floering",
+    author_email='michael.floering@gmail.com',
+    url='https://github.com/hangtwenty/presswork',
+    packages=find_packages(include=['presswork']),
+    entry_points={
+        # # TODO(hangtwenty) add a CLI that accepts text input on stdin, outputs on stdout (flexible, chainable)
+        # 'console_scripts': [
+        #     'presswork=presswork.cli:main'
+        # ]
+    },
     include_package_data=True,
     install_requires=requirements,
-    license="WTFPL",
+    license="GNU General Public License v3",
     zip_safe=False,
     keywords='presswork',
     classifiers=[
         'Development Status :: 2 - Pre-Alpha',
         'Intended Audience :: Developers',
-        'License :: OSI Approved :: BSD License',
+        'License :: OSI Approved :: GNU General Public License v3 (GPLv3)',
         'Natural Language :: English',
         "Programming Language :: Python :: 2",
         'Programming Language :: Python :: 2.7',
     ],
     test_suite='tests',
-    tests_require=test_requirements
+    tests_require=test_requirements,
+    setup_requires=setup_requirements,
 )
