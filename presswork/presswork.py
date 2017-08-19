@@ -111,7 +111,7 @@ class MarkovChainTextMaker(object):
         return MarkovChainTextMaker(db_file_path=db_file_path, **kwargs)
 
     def increment_words(self, words):
-        self.db[("",)][words[0]] += 1
+        self.db[(START_SYMBOL,)][words[0]] += 1
 
     def database_init(self, text_input_as_string):
         """ Generate word probability database from raw content string """
@@ -217,7 +217,7 @@ class MarkovChainTextMaker(object):
         sample = random.random()
         # since rounding errors might make us miss out on some words
         maxprob = 0.0
-        maxprobword = ""
+        maxprobword = START_SYMBOL
         for candidate in probmap:
             # remember which word had the highest probability
             # this is the word we'll default to if we can't find anythin else
