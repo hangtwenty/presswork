@@ -1,11 +1,14 @@
 presswork
 =============
 
-This project was just for fun. It provides an easy-to-use text generator using Markov chains. You give it a bunch of text, it generates more text based on those models. It can be used from code, or you can locally run the [Flask](http://flask.pocoo.org) app and rapidly play around through your web browser. It is not utilitarian nor ready for any production purpose... but it was fun! For a library that is more recently maintained, see [jsvine/markovify](https://github.com/jsvine/markovify).
+This project was just for fun. It provides an easy-to-use text generator using Markov chains. You give it a bunch of text, it generates more text based on those models. It can be used from code, or you can locally run the [Flask](http://flask.pocoo.org) app and rapidly play around through your web browser. It is not utilitarian nor stable... but it's been fun! 
+
+For a Markov Chain text generation **library** that is a bit more practical (and used widely, though typically for 
+ kicks as well) -- see [jsvine/markovify](https://github.com/jsvine/markovify)
 
 Goal was ease of use. Here's some easy usage from code:
 
-    >>> from presswork import MarkovChainTextMaker 
+    >>> from presswork import MarkovChainTextMaker
     >>> text_maker = MarkovChainTextMaker("/tmp/markov")
     >>> text_maker.database_init("Beautiful is better than ugly. Explicit is better than implicit.")
     >>> print text_maker.make_sentences(2)
@@ -16,24 +19,27 @@ The local [Flask](http://flask.pocoo.org) app is better though. More details on 
 background
 ==========
 
-* Purpose: generate some text - specifically I wanted to write some parodies of music reviews, specifically of some electronic and experimental music I love. I love the music, but the reviews can be a bit... funny. So I wanted to poke more fun. I published a couple of posts, and hand some laughs with friends. Here: [Presswerk](http://presswerk.tumblr.com/). I was going to do more, but I turned my attention back to making new music.
-* Original Markov Chain class forked from [TehMillhouse/PyMarkovChain](https://github.com/TehMillhouse/PyMarkovChain)
-    * Added sentence tokenization support (via NLTK)
-    * Added unit tests (86% test coverage of the module)
-    * Added little Flask web app for playing around rapidly
 
-setup
-=====
+* Purpose: generate some text - specifically I wanted to write some parodies of music reviews, specifically of some electronic and experimental music I love. I love the music, but the reviews can be a bit... funny. So I wanted to poke more fun. 
+    * I couple of posts, and hand some laughs with friends. Here: [Presswerk](http://presswerk.tumblr.com/). I was going to do more, but I turned my attention back to making new music.
+    * Code has been dormant since hacking things together at  Hackathon-ish setting in 2016.
+* **PLANNED**: I'll add other Markov Chain Text Maker implementations, make [jsvine/markovify](https://github.com/jsvine/markovify)  the default and the best option for most users. (The others are mostly here for a coding exercise.)
 
-To install and use,
+setup (mostly normal)
+=========================
 
-* Grab this GitHub repository. (I feel this code is not utilitarian enough to put it on PyPI)
-  `cd` into the directory.
-* `pip install -e .` to install `presswork` (in a [virtualenv](https://virtualenv.pypa.io/en/latest/))
-* Install dependencies.
-    * `pip install -r requirements.txt`
-    * If you plan to use the [Flask](http://flask.pocoo.org) web app, you need to also do `pip install -r requirements-server.txt`
-* Download required [NLTK](http://www.nltk.org/) corpora. There's a script in here to help: `python ./scripts/download_corpora.py`
+Recommended installation
+
+1. Grab this GitHub repository and `cd` in. (Withheld from PyPI because it's not utilitarian.)
+2. Create & activate your [virtualenv](https://virtualenv.pypa.io/en/latest/)
+3. `make install`. This will do `pip install`, then also install NLTK corpora dependencies.
+
+Iff you need more control, or you don't have `make` --
+
+1. `pip install .` to install `presswork` AND dependencies. (or `pip install -e .` for editable/development mode.)
+2. Download required [NLTK](http://www.nltk.org/) corpora.
+    * `python setup.py install_with_nltk_corpora`
+    * If you need to change where the NLTK corpora install to, set `NLTK_DATA` (more info in `setup.py`)
 
 
 recommended usage: play with the web app locally
@@ -45,9 +51,12 @@ Running the Flask app locally is easy.
 
     # ASSUMPTION: you have already done `pip install -r requirements-server.txt`
     $ python flask_app/app.py 8080
-                             #^^^^ pick any port you want. defaults to 80.
+                             #^^^^ pick any port you want. defaults to Flask's default (5000)
 
-Then in your web browser, go to http://localhost:8080, or whatever port, and play around. Here is a snapshot from [when I was jamming with reviews of Oneohtrix Point Never](http://presswerk.tumblr.com/).
+Then in your web browser, go to http://localhost:8080, or whatever port, and play around.
+
+Here are screenshots of an early version. I was playing with 
+[reviews of Oneohtrix Point Never's music, and more](http://presswerk.tumblr.com/).
 
 ![Input to presswork web app](.readme_images/presswork_web_app_input.png)
 ![Output from presswork web app](.readme_images/presswork_web_app_output.png)
@@ -96,7 +105,7 @@ what I would improve if I pick this back up
 
 This library is rudimentary and just for fun. If I pick it back up to play with it more, these are the changes I would make.
 
-* Main code - PROBABLY swap out the default Markov implementation with using more robust implementation from [markovify](https://github.com/jsvine/markovify library)
+* Main code - PROBABLY swap out the default Markov implementation with using more robust implementation from [markovify](https://github.com/jsvine/markovify)
     * Then wire up configurability improvements as noted below
     * CAVEAT: it seems that markovify lib is using its own quick splitters/tokenizers. Maybe I would fork it, and add the option to use NLTK as backend (make pluggable)
 * Morevoer, the Markov implementation should be pluggable. Then I could swap with others like https://github.com/pteichman/cobe and see what's best.
@@ -111,7 +120,7 @@ This library is rudimentary and just for fun. If I pick it back up to play with 
         * Pick any filepath
         * Select/autocomplete from filepaths used so far (enable workflow of easily switching between modes/presets)
         * Clear database file (back up to /tmp/ then clear)
-    * There are already tests for the `presswork` module but none for the Flask app. Could add some. 
+    * There are already tests for the `presswork` module but none for the Flask app. Could add some.
 
 development
 ===========

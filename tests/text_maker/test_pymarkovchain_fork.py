@@ -13,7 +13,7 @@ import os
 
 import pytest
 
-from presswork import presswork
+from presswork.text_maker._pymarkovchain_fork import PyMarkovChainWithNLTK
 
 SentencesTestCase = namedtuple('SentencesTestCase', ['text', 'phrase_in_each_sentence'])
 
@@ -29,12 +29,15 @@ Sparse is better than dense.
 
 
 # TODO more test cases
-# TODO test cases for different window sizes
+# TODO test cases for different window/state sizes
+
+
+# TODO add skipif( <corpora not downloaded> )
 
 @pytest.fixture
 def text_maker(tmpdir):
     db_file_path = os.path.join(str(tmpdir), "presswork_markov_db")
-    text_maker = presswork.MarkovChainTextMaker.with_persistence(db_file_path)
+    text_maker = PyMarkovChainWithNLTK.with_persistence(db_file_path)
     return text_maker
 
 
@@ -68,7 +71,7 @@ def test_high_level_behavior(text_maker, test_case):
 
 
 def test_post_process():
-    res = presswork.MarkovChainTextMaker.post_process(
+    res = PyMarkovChainWithNLTK.post_process(
         'foo . bar test : ,! baz ! hi yepyep: blah ; hi')
     assert res == "foo. bar test: ,! baz! hi yepyep: blah; hi"
 
@@ -86,7 +89,7 @@ def test_database_persistence(text_maker, test_case):
     # dump DB, use another instance to load DB...
     text_maker.database_dump()
     # we dumped the DB so another instance w/ same db_file_path argument should behave same.
-    text_maker_2 = presswork.MarkovChainTextMaker.with_persistence(text_maker.db_file_path)
+    text_maker_2 = PyMarkovChainWithNLTK.with_persistence(text_maker.db_file_path)
     # notice we do not call `database_init` - that doesn't need to happen
     assert test_case.phrase_in_each_sentence in text_maker_2.make_sentence()
 
