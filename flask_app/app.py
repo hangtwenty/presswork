@@ -22,8 +22,12 @@ class MarkovChainTextMakerForm(Form):
         'Source text',
         [validators.InputRequired(), validators.Length(max=1000000)])
 
+    # TODO(hangtwenty) (someday/maybe) if extending or adding a markov impl that supports multi models w/ weighting,
+    # it'd be nice to be able to put in multiple separated sources of different weights - a "+=" button on the form,
+    # adding more boxes, which are loaded into more models. nice-to-have, or maybe not worth it
+
     window = IntegerField(
-        "Window size (informally, 'strictness')",
+        "Window size AKA state size (increase for more 'rigid' modeling of source text)",
         [validators.NumberRange(min=1, max=9)],
         default=2, )
 
@@ -42,6 +46,7 @@ def markov():
 
         for field_name in ('text', 'window', 'count_of_sentences_to_make'):
             field = getattr(form, field_name)
+            # if submitted, keep last submission in the text fields (supports 'accumulating' workflow)
             field.default = field.data
 
         return render_template(
