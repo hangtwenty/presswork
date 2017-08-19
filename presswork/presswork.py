@@ -27,7 +27,7 @@ from nltk import TreebankWordTokenizer
 import nltk
 
 RE_PUNCTUATION = re.compile(ur'\p{P}')
-EMPTY_STRING = u''
+START_SYMBOL = u''
 
 
 # <factories>  # Define some factories as functions so we can easily pickle them
@@ -118,9 +118,8 @@ class MarkovChainTextMaker(object):
         # I'm using the database to temporarily store word counts
         text_input_as_string = \
             self._sentence_tokenizer.tokenize(text_input_as_string)
-        # We're using the empty string (EMPTY_STRING) as special symbol for the beginning
-        # of a sentence
-        self.db[(EMPTY_STRING,)][EMPTY_STRING] = 0.0
+        # We need a special symbol for the beginning of a sentence.
+        self.db[(START_SYMBOL,)][START_SYMBOL] = 0.0
         for line in text_input_as_string:
             words = self._word_tokenizer.tokenize(line)
             if len(words) == 0:
@@ -170,7 +169,7 @@ class MarkovChainTextMaker(object):
 
     def make_sentence(self):
         """ Generate a "sentence" with the database of known text """
-        generated = self._accumulate_with_seed((EMPTY_STRING,))
+        generated = self._accumulate_with_seed((START_SYMBOL,))
         return MarkovChainTextMaker.post_process(generated)
 
     def make_sentence_with_seed(self, seed):
@@ -209,11 +208,11 @@ class MarkovChainTextMaker(object):
 
     def _next_word(self, last_words):
         last_words = tuple(last_words)
-        if last_words != (EMPTY_STRING,):
+        if last_words != (START_SYMBOL,):
             while last_words not in self.db:
                 last_words = last_words[1:]
                 if not last_words:
-                    return EMPTY_STRING
+                    return START_SYMBOL
         probmap = self.db[last_words]
         sample = random.random()
         # since rounding errors might make us miss out on some words
