@@ -1,7 +1,10 @@
 presswork
 =============
 
-This project was just for fun. It provides an easy-to-use text generator using Markov chains. You give it a bunch of text, it generates more text based on those models. It can be used from code, or you can locally run the [Flask](http://flask.pocoo.org) app and rapidly play around through your web browser. It is not utilitarian nor ready for any production purpose... but it was fun! For a library that is more recently maintained, see [jsvine/markovify](https://github.com/jsvine/markovify).
+This project was just for fun. It provides an easy-to-use text generator using Markov chains. You give it a bunch of text, it generates more text based on those models. It can be used from code, or you can locally run the [Flask](http://flask.pocoo.org) app and rapidly play around through your web browser. It is not utilitarian nor stable... but it's been fun! 
+
+For a Markov Chain text generation **library** that is a bit more practical (and used widely, though typically for 
+ kicks as well) -- see [jsvine/markovify](https://github.com/jsvine/markovify)
 
 Goal was ease of use. Here's some easy usage from code:
 
@@ -16,9 +19,11 @@ The local [Flask](http://flask.pocoo.org) app is better though. More details on 
 background
 ==========
 
-* Purpose: generate some text - specifically I wanted to write some parodies of music reviews, specifically of some electronic and experimental music I love. I love the music, but the reviews can be a bit... funny. So I wanted to poke more fun. I published a couple of posts, and hand some laughs with friends. Here: [Presswerk](http://presswerk.tumblr.com/). I was going to do more, but I turned my attention back to making new music.
-* Now has multiple Markov Chain Text Maker implementations, [jsvine/markovify](https://github.com/jsvine/markovify) 
- is the default and the best option for most users. (The others are mostly here for a coding exercise.)
+
+* Purpose: generate some text - specifically I wanted to write some parodies of music reviews, specifically of some electronic and experimental music I love. I love the music, but the reviews can be a bit... funny. So I wanted to poke more fun. 
+    * I couple of posts, and hand some laughs with friends. Here: [Presswerk](http://presswerk.tumblr.com/). I was going to do more, but I turned my attention back to making new music.
+    * Code has been dormant since hacking things together at  Hackathon-ish setting in 2016.
+* **PLANNED**: I'll add other Markov Chain Text Maker implementations, make [jsvine/markovify](https://github.com/jsvine/markovify)  the default and the best option for most users. (The others are mostly here for a coding exercise.)
 
 setup (mostly normal)
 =========================
@@ -100,7 +105,7 @@ what I would improve if I pick this back up
 
 This library is rudimentary and just for fun. If I pick it back up to play with it more, these are the changes I would make.
 
-* Main code - PROBABLY swap out the default Markov implementation with using more robust implementation from [markovify](https://github.com/jsvine/markovify library)
+* Main code - PROBABLY swap out the default Markov implementation with using more robust implementation from [markovify](https://github.com/jsvine/markovify)
     * Then wire up configurability improvements as noted below
     * CAVEAT: it seems that markovify lib is using its own quick splitters/tokenizers. Maybe I would fork it, and add the option to use NLTK as backend (make pluggable)
 * Morevoer, the Markov implementation should be pluggable. Then I could swap with others like https://github.com/pteichman/cobe and see what's best.
