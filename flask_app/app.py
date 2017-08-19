@@ -19,16 +19,16 @@ app.config['SECRET_KEY'] = str(uuid.uuid4())
 
 class MarkovChainTextMakerForm(Form):
     text = StringField(
-        'Text to imitate',
+        'Source text',
         [validators.InputRequired(), validators.Length(max=1000000)])
 
     window = IntegerField(
-        "Window size",
+        "Window size (informally, 'strictness')",
         [validators.NumberRange(min=1, max=9)],
         default=2, )
 
     count_of_sentences_to_make = IntegerField(
-        "Sentences to generate", [validators.NumberRange(min=1, max=3000)], default=25, )
+        "Number of sentences to generate", [validators.NumberRange(min=1, max=3000)], default=25, )
 
 
 @app.route("/", methods=['GET', 'POST', ])
