@@ -27,7 +27,7 @@ from nltk import TreebankWordTokenizer
 import nltk
 
 RE_PUNCTUATION = re.compile(ur'\p{P}')
-START_SYMBOL = u''
+SPECIAL_TOKEN = u''
 
 
 # <factories>  # Define some factories as functions so we can easily pickle them
@@ -111,7 +111,7 @@ class MarkovChainTextMaker(object):
         return MarkovChainTextMaker(db_file_path=db_file_path, **kwargs)
 
     def increment_words(self, words):
-        self.db[(START_SYMBOL,)][words[0]] += 1
+        self.db[(SPECIAL_TOKEN,)][words[0]] += 1
 
     def database_init(self, text_input_as_string):
         """ Generate word probability database from raw content string """
@@ -119,7 +119,7 @@ class MarkovChainTextMaker(object):
         text_input_as_string = \
             self._sentence_tokenizer.tokenize(text_input_as_string)
         # We need a special symbol for the beginning of a sentence.
-        self.db[(START_SYMBOL,)][START_SYMBOL] = 0.0
+        self.db[(SPECIAL_TOKEN,)][SPECIAL_TOKEN] = 0.0
         for line in text_input_as_string:
             words = self._word_tokenizer.tokenize(line)
             if len(words) == 0:
@@ -169,7 +169,7 @@ class MarkovChainTextMaker(object):
 
     def make_sentence(self):
         """ Generate a "sentence" with the database of known text """
-        generated = self._accumulate_with_seed((START_SYMBOL,))
+        generated = self._accumulate_with_seed((SPECIAL_TOKEN,))
         return MarkovChainTextMaker.post_process(generated)
 
     def make_sentence_with_seed(self, seed):
@@ -208,16 +208,16 @@ class MarkovChainTextMaker(object):
 
     def _next_word(self, last_words):
         last_words = tuple(last_words)
-        if last_words != (START_SYMBOL,):
+        if last_words != (SPECIAL_TOKEN,):
             while last_words not in self.db:
                 last_words = last_words[1:]
                 if not last_words:
-                    return START_SYMBOL
+                    return SPECIAL_TOKEN
         probmap = self.db[last_words]
         sample = random.random()
         # since rounding errors might make us miss out on some words
         maxprob = 0.0
-        maxprobword = START_SYMBOL
+        maxprobword = SPECIAL_TOKEN
         for candidate in probmap:
             # remember which word had the highest probability
             # this is the word we'll default to if we can't find anythin else
