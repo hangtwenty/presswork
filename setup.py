@@ -23,6 +23,7 @@ _requirements_cli = [
 ]
 
 _requirements_server = [
+    # TODO(hangtwenty) pin these
     'Flask',
     'Flask-WTF',
     'wtforms',
@@ -31,7 +32,6 @@ _requirements_server = [
 # these could all be split up, but really purpose of 'Presswork' is to bring a couple of things together into an
 # instant-gratification sandbox. so, a compromise: just make things clear-cut, even though I'm 'bundling' them.
 requirements = _requirements_cli + _requirements_server + [
-    'funcy==1.4',
     'regex==2015.3.18',  # TODO maybe stop using this dependency and switch to stdlib `re`.
 
     'PyYAML',
@@ -73,7 +73,7 @@ class InstallWithNLTKCorpora(SetuptoolsInstallCommand):
 
 setup(
     name='presswork',
-    version='0.2.1',
+    version='0.2.2',
     description="Instant gratification sandbox for text generation using Markov Chains. "
                 "A little Flask app (only for local use), and a CLI that supports piping. "
                 "Comes with a couple of Markov Chain implementations - pluggable. Have fun!",

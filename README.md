@@ -27,18 +27,15 @@ background
 setup (mostly normal)
 =========================
 
-Recommended installation
-
-1. Grab this GitHub repository and `cd` in. (Withheld from PyPI because it's not utilitarian.)
+1. Grab this GitHub repository and `cd` in. (Not on PyPI because it's not utilitarian.)
 2. Create & activate your [virtualenv](https://virtualenv.pypa.io/en/latest/)
-3. `make install`. This will do `pip install`, then also install NLTK corpora dependencies.
-
-Iff you need more control, or you don't have `make` --
-
-1. `pip install .` to install `presswork` AND dependencies. (or `pip install -e .` for editable/development mode.)
-2. Download required [NLTK](http://www.nltk.org/) corpora.
-    * `python setup.py install_with_nltk_corpora`
-    * If you need to change where the NLTK corpora install to, set `NLTK_DATA` (more info in `setup.py`)
+3. install
+    - **quick:** `make install`. This will do `pip install`, then also install NLTK corpora dependencies.
+    - or **custom:** 
+        1. `pip install .` to install `presswork` plus dependencies. (or `pip install -e .` for editable/development mode.)
+        2. Download required [NLTK](http://www.nltk.org/) corpora.
+            * `python setup.py install_with_nltk_corpora`
+            * (If you need to change where the NLTK corpora install to, set `NLTK_DATA` (more info in `setup.py`))
 
 
 recommended usage: play with the web app locally
@@ -48,9 +45,8 @@ My preferred way to use this is to keep generating text, selectively grabbing th
 
 Running the Flask app locally is easy.
 
-    # ASSUMPTION: you have already done `pip install -r requirements-server.txt`
     $ python flask_app/app.py 8080
-                             #^^^^ pick any port you want. defaults to Flask's default (5000)
+                                 # pick any port you want. defaults to Flask's default (5000)
 
 Then in your web browser, go to http://localhost:8080, or whatever port, and play around.
 
@@ -65,8 +61,8 @@ Here are screenshots of an early version. I was playing with
 #### Caveats
 
 * Suitable only for local usage, **please** don't deploy it anywhere.
-* As currently written, I don't have the Markov database/corpora persisting between runs/submissions. That is, each time you submit text, it loads in, and generates and outputs; next submission is a clean slate. This was the maximum flexibility for a first cut, and it was the workflow I wanted. To include various source texts at once, just paste all in the input box (and to save that input for multiple rounds of generation, just select-all and copy, re-inputting as needed). If you want to "accumulate" text as you go, go ahead: continue feeding the output back into the input. Or combine output with other freshi nputs. YMMV but this was was exactly the kind of workflow as I was after for this frivolous purpose :-)
-* I haven't optimized the performance. Large input takes longer to handle, so if you throw in whole books from Project Gutenberg it will hang a bit
+* As currently written, I don't have the Markov database/corpora persisting between runs/submissions. That is, each time you submit text, it loads in, and generates and outputs; next submission is a clean slate. This was the maximum flexibility for a first cut, and it was the workflow I wanted. To include various source texts at once, just paste all in the input box (and to save that input for multiple rounds of generation, just select-all and copy, re-inputting as needed). If you want to "accumulate" text as you go, go ahead: continue feeding the output back into the input. Or combine output with other fresh inputs. YMMV but this was was exactly the kind of workflow as I was after for this frivolous purpose :-)
+* No performance testing or tuning. Large input takes longer to handle, so if you throw in whole books from Project Gutenberg it will hang a bit
 
 #### A similar workflow, that would get around the caveats
 
@@ -114,15 +110,45 @@ This library is rudimentary and just for fun. If I pick it back up to play with 
     * Configurable support for handling contractions (i.e. option to replace "don't" with "do not"
     in case that makes for better text generation with your input corpus)
     * Improve punctuation handling. It's handling puncutation in a silly way. I have some logic to ensure `"foo"` and `"foo."` are treated as separate tokens, but it's handled crudely (just a first cut). So currently when the tokens are joined together into a string and returned to user, there is whitespace around all the punctuation, which forces some manual editing before finally using the generated text. Fixing this up won't be hard, just have to do it.
-* Web application
-    * Add options to the Flask app for persisting the database between runs, but also freely clearing it, switching between database files, and so on
-        * Pick any filepath
-        * Select/autocomplete from filepaths used so far (enable workflow of easily switching between modes/presets)
-        * Clear database file (back up to /tmp/ then clear)
-    * There are already tests for the `presswork` module but none for the Flask app. Could add some.
+ 
+-----------------------------------------------------------------
 
-development
-===========
+development & exploration
+=========================
 
 * Run tests with pytest (`py.test` in this directory).
 * Run tests of supported Python versions, from clean slate, with tox (`tox` in this directory).
+
+#### Looking at how it works
+
+There are plenty of resources to learn the basics of finite Markov Chains, from the procedure to the practical applications.
+(Won't link here.)
+
+Well-performing Markov Chain implementations need some optimizations and tweaks. 
+For a stripped down, Simplest Thing That Could Possibly Work version, review `presswork.text_maker._crude`.
+Once you've reviewed the code, try 'tracing' the code as it executes. This is a nice series of commands to run:
+
+    # here is our source text :-)
+    python -c 'import this' | grep 'better than' 
+    
+    # here's what it can generate...
+    python -c 'import this' | grep 'better than' | python presswork/cli/__init__.py
+    
+    # now use `trace` from stdlib to trace it (and grep/filter by module name)
+    python -c 'import this' | grep 'better than' \
+        | python -m trace -t presswork/cli/__init__.py --strategy crude \
+        | grep 'crude'
+    
+    # lastly, you can view the logs
+    less /tmp/presswork.debug.log
+
+You can repeat the same for other strategies... (Recommend to peruse the source code first, too)
+
+    python -c 'import this' | grep 'better than' \
+        | python -m trace -t presswork/cli/__init__.py --strategy pymc \
+        | grep 'pymarkovchain'
+
+... or other source texts
+
+    cat foo.txt | python -m trace -t presswork/cli/__init__.py --strategy pymc 
+    cat foo.txt | python -m trace -t presswork/cli/__init__.py --strategy pymc | grep 'pymarkovchain'

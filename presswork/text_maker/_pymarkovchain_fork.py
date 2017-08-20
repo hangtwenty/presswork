@@ -35,7 +35,6 @@ import os
 import random
 import re
 
-from funcy import collecting
 from nltk import TreebankWordTokenizer
 import nltk
 
@@ -69,31 +68,6 @@ class EndOfChainException(Exception):
     pass
 
 
-class WordTokenizer(TreebankWordTokenizer):  # TODO(hangtwenty)
-    """ Split text on whitespace and more. `tokenize` method returns a list of words.
-
-    Default tokenizer that works well here is basically Treebank,
-    but we neutralize the contractions so that "can't" stays 1 word for example...
-    The Ender transformation leaves stopwords in-tact, including contractions,
-    so we don't need to decompose "can't" into its two meaningful tokens.
-    We don't care. We pass "don't" and "can't" through.
-    """
-    # TODO(hangtwenty) contractions support - from config file ;)
-    # CONTRACTIONS = []
-
-    @collecting
-    def tokenize(self, text):
-        """
-        :rtype: list
-        """
-        tokens = super(WordTokenizer, self).tokenize(text)
-        for token in tokens:
-            if RE_PUNCTUATION.match(token):
-                yield token
-            else:
-                yield token
-
-
 class PyMarkovChainWithNLTK(object):
     """ A text model and text maker in a single class, with options for local filesystem persistence.
 
@@ -101,15 +75,17 @@ class PyMarkovChainWithNLTK(object):
 
     See module header for notes on AUTHORSHIP and CAVEATS.
     """
-    # TODO this should use tmpdir
     DEFAULT_DB_FILE_PATH = os.path.join(os.path.dirname(__file__), "presswork_markov_db")
     DEFAULT_WINDOW_SIZE_WORDS = 2
 
     # data structure for this db is dictionaries nested 1 deep: `{words: {word: probability}}`
-    def __init__(self, db_file_path=None, window=DEFAULT_WINDOW_SIZE_WORDS):
+    def __init__(
+            self,
+            db_file_path=None,
+            window=DEFAULT_WINDOW_SIZE_WORDS,
+            word_tokenizer=None
+    ):
         self.window = window
-
-        # TODO(hangtwenty) get rid of database storage until/unless someone calls dump.
 
         self.db = None
         self.db_file_path = db_file_path
@@ -123,7 +99,7 @@ class PyMarkovChainWithNLTK(object):
         if self.db is None:
             self.db = _db_factory()
 
-        self._word_tokenizer = WordTokenizer()
+        self._word_tokenizer = word_tokenizer or TreebankWordTokenizer()
         self._sentence_tokenizer = nltk.data.load('tokenizers/punkt/english.pickle')
 
     @classmethod
