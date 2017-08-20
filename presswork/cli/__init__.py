@@ -36,8 +36,8 @@ def main(strategy, input_text, input_encoding, output_encoding):
 
     if strategy == 'crude':
         # TODO refactor such that this is behind a TextMaker class
-        from presswork.text_maker._crude import markov_chain_of_sentences_and_words, make_text
-        result = make_text(model=markov_chain_of_sentences_and_words(source_text=input_text))
+        from presswork.text_maker._crude import crude_markov_chain, make_text
+        result = make_text(model=crude_markov_chain(source_text=input_text))
     else:
         raise ValueError('unknown strategy')
 

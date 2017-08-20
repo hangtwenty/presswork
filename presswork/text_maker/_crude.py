@@ -35,34 +35,16 @@ Sparse is better than dense.
 START_SYMBOL = u""
 
 
-def _markov_chain_of_characters(source_text=EXAMPLE_SOURCE, ngram_size=2):
+def _crude_sentence_splitter(string):
+    # RECOMMENDED: use sentence splitter from another module.
+    # function just provides the crudest default: assume sentences are split by newlines.
+    return string.splitlines()
+
+
+def crude_markov_chain(source_text=EXAMPLE_SOURCE, ngram_size=2, sentence_splitter_fn=_crude_sentence_splitter):
     model = {}
 
-    for i in xrange(0, len(source_text)):
-        ngram = tuple(source_text[i: (i + ngram_size)])
-
-        try:
-            follow = source_text[i + ngram_size]
-        except IndexError:
-            break
-
-        if model.get(ngram, None) is None:
-            model[ngram] = [follow]
-        else:
-            model[ngram].append(follow)
-
-    if logger.level == logging.DEBUG:
-        logger.debug('model=\n{}'.format(pprint.pformat(model, width=2)))
-
-    return model
-
-
-def markov_chain_of_sentences_and_words(source_text=EXAMPLE_SOURCE, ngram_size=2):
-    model = {}
-
-    sentences = source_text.splitlines()  # TODO make sentence-splitting override-able (THAT is why to make it a class)
-
-    for sentence in sentences:
+    for sentence in _crude_sentence_splitter(source_text):
         words = sentence.split()
         for i in xrange(0, len(words)):
             ngram = tuple(words[i:(i + ngram_size)])
