@@ -3,9 +3,9 @@ formatters:
     simple:
         format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
     verbose:
-        format: "%(levelname)-8s %(asctime)s %(name)s %(filename)s:%(lineno)s | %(funcName) | %(message)s"
+        format: "%(levelname)-8s %(asctime)s %(name)s %(filename)s:%(lineno)s | %(funcName)s | %(message)s"
     very_verbose:
-        format: "%(levelname)-8s %(asctime)s %(name)s %(pathname)s:%(lineno)s | %(funcName) | %(message)s"
+        format: "%(levelname)-8s %(asctime)s %(name)s %(pathname)s:%(lineno)s | %(funcName)s | %(message)s"
 handlers:
     console:
         class: logging.StreamHandler
@@ -16,24 +16,33 @@ handlers:
         class: logging.handlers.RotatingFileHandler
         formatter: very_verbose
         level: DEBUG
-        filename: /tmp/LOGGER_NAME_NOT_SET.debug.log
+        filename: /tmp/presswork.debug.log
         maxBytes: 10485760
         backupCount: 3
+        encoding: utf8
     file_info:
         class: logging.handlers.RotatingFileHandler
         formatter: simple
         level: INFO
-        filename: /tmp/LOGGER_NAME_NOT_SET.info.log
+        filename: /tmp/presswork.info.log
         maxBytes: 10485760
         backupCount: 3
+        encoding: utf8
     file_error:
         class: logging.handlers.RotatingFileHandler
         formatter: verbose
         level: ERROR
-        filename: /tmp/LOGGER_NAME_NOT_SET.error.log
+        filename: /tmp/presswork.error.log
         maxBytes: 10485760
         backupCount: 3
+        encoding: utf8
 
 root:
-    level: DEBUG
+    level: "DEBUG" # DEBUG and above
     handlers: [console, file_info, file_error, file_debug]
+
+loggers:
+    presswork:
+        level: "DEBUG" # DEBUG and above
+        handlers: [console, file_info, file_error, file_debug]
+
