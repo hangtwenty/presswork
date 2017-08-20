@@ -5,7 +5,8 @@
 NOTES RE: AUTHORSHIP & CAVEATS
 ===============================
 
-Forked from PyMarkovChain library's MarkovChain class (https://pypi.python.org/pypi/PyMarkovChain/).
+Forked from PyMarkovChain==1.7.5 MarkovChain class
+(https://github.com/TehMillhouse/PyMarkovChain/tree/ade01f64b6107e426f6c01168aae14ad238c656f).
 Markov-Chain implementation details mostly left the same (I do not claim credit),
 I forked to bring NLTK into the mix. (Original class did not have good extension points.)
 
