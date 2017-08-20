@@ -46,7 +46,7 @@ def crude_markov_chain(source_text=EXAMPLE_SOURCE, ngram_size=2, sentence_splitt
 
     for sentence in _crude_sentence_splitter(source_text):
         words = sentence.split()
-        for i in xrange(0, len(words)):
+        for i in xrange(0, len(words) + 1):
             ngram = tuple(words[i:(i + ngram_size)])
 
             try:
@@ -69,7 +69,7 @@ def make_text(count_of_words=100, model=None, join_with=" "):
     output_words = []
     current_ngram = None
 
-    for i in range(0, count_of_words):
+    for i in xrange(0, count_of_words + 1):
         if not current_ngram:
             # TODO(hangtwenty) should separate sentence-starts from not, probably, and only use sentence-starts here
             current_ngram = random.choice(model.keys())
