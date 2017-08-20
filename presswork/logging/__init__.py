@@ -6,12 +6,13 @@ import yaml
 
 HERE = os.path.abspath(os.path.dirname(__file__))
 
+
 def setup_logging(config_path=os.path.join(HERE, "logging.yaml"), config=None):
     """Setup logging configuration
     """
     logging.basicConfig()
 
-    error_message = "please supply (only) one of: config (dict), config_path (path to YAML)"
+    error_message = 'please supply (only) one of: config (dict), config_path (path to YAML)'
     if config and config_path:
         raise ValueError(error_message)
 
@@ -24,3 +25,5 @@ def setup_logging(config_path=os.path.join(HERE, "logging.yaml"), config=None):
         raise ValueError(error_message)
 
     logging.config.dictConfig(config)
+
+    return logging.getLogger('presswork')

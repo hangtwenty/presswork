@@ -51,7 +51,9 @@ def _markov_chain_of_characters(source_text=EXAMPLE_SOURCE, ngram_size=2):
         else:
             model[ngram].append(follow)
 
-    logger.debug('model=\n{}'.format(pprint.pformat(model, width=2)))
+    if logger.level == logging.DEBUG:
+        logger.debug('model=\n{}'.format(pprint.pformat(model, width=2)))
+
     return model
 
 
@@ -65,8 +67,6 @@ def markov_chain_of_sentences_and_words(source_text=EXAMPLE_SOURCE, ngram_size=2
         for i in xrange(0, len(words)):
             ngram = tuple(words[i:(i + ngram_size)])
 
-            print ngram
-
             try:
                 follow = words[i + ngram_size]
             except IndexError:
@@ -77,7 +77,9 @@ def markov_chain_of_sentences_and_words(source_text=EXAMPLE_SOURCE, ngram_size=2
             else:
                 model[ngram].append(follow.strip())
 
+    if logger.level == logging.DEBUG:
         logger.debug('model=\n{}'.format(pprint.pformat(model, width=2)))
+
     return model
 
 
@@ -102,10 +104,3 @@ def make_text(count_of_words=100, model=None, join_with=" "):
 
     return join_with.join(output_words)
 
-
-if __name__ == "__main__":
-    # result = make_text(model=_markov_chain_of_characters(), join_with="")
-    # print result
-
-    result = make_text(model=markov_chain_of_sentences_and_words())
-    print result

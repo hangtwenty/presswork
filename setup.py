@@ -83,7 +83,6 @@ setup(
     url='https://github.com/hangtwenty/presswork',
     packages=find_packages(include=['presswork']),
     entry_points={
-        # TODO(hangtwenty) add a CLI that accepts text input on stdin, outputs on stdout (flexible, chainable)
         'console_scripts': [
             'presswork=presswork.cli:main'
         ]
