@@ -34,6 +34,8 @@ requirements = _requirements_cli + _requirements_server + [
     'funcy==1.4',
     'regex==2015.3.18',  # TODO maybe stop using this dependency and switch to stdlib `re`.
 
+    'PyYAML',
+
     'nltk==' + NLTK_VERSION,
 ]
 
@@ -71,7 +73,7 @@ class InstallWithNLTKCorpora(SetuptoolsInstallCommand):
 
 setup(
     name='presswork',
-    version='0.2.0',
+    version='0.2.1',
     description="Instant gratification sandbox for text generation using Markov Chains. "
                 "A little Flask app (only for local use), and a CLI that supports piping. "
                 "Comes with a couple of Markov Chain implementations - pluggable. Have fun!",
