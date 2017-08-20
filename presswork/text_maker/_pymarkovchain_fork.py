@@ -1,7 +1,9 @@
 # -*- coding: utf-8 -*-
-""" 'Legacy' but working Markov Chain Text Maker class, forked from PyMarkovChain to add NLTK tokenization.
+""" 'Legacy' but usable Markov Chain Text Maker class. Based on PyMarkovChain, added NLTK tokenization.
 
-CAVEATS
+-------------------------------
+NOTES RE: AUTHORSHIP & CAVEATS
+===============================
 
 Forked from PyMarkovChain library's MarkovChain class (https://pypi.python.org/pypi/PyMarkovChain/).
 Markov-Chain implementation details mostly left the same (I do not claim credit),
@@ -16,11 +18,6 @@ Reviewing a while later, I don't like these things about it:
     - implementation could be clearer
     - persistence uses pickle (pickle has bad security posture. This is just a toy but still, better to use JSON.)
     - no performance testing or optimization
-
-Based on: https://pypi.python.org/pypi/PyMarkovChain/
-Note from hangtwenty:
-    I do NOT take credit for most of this :)
-    I just mixed up PyMarkovChain with some NLTK stuff
 """
 
 from __future__ import division
@@ -101,7 +98,7 @@ class PyMarkovChainWithNLTK(object):
 
     Forked from PyMarkovChain library's MarkovChain class (https://pypi.python.org/pypi/PyMarkovChain/)
 
-    See module header for notes on CAVEATS.
+    See module header for notes on AUTHORSHIP and CAVEATS.
     """
     # TODO this should use tmpdir
     DEFAULT_DB_FILE_PATH = os.path.join(os.path.dirname(__file__), "presswork_markov_db")
@@ -157,7 +154,7 @@ class PyMarkovChainWithNLTK(object):
                     self.db[word][words[i + order]] += 1
 
                 # last word precedes a sentence end
-                self.db[tuple(words[len(words) - order:len(words)])][""] += 1
+                self.db[tuple(words[len(words) - order:len(words)])][SPECIAL_TOKEN] += 1
 
         # We've now got the db filled with parametrized word counts
         # We still need to normalize this to represent probabilities
