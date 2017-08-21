@@ -17,9 +17,16 @@ from presswork import constants
 from presswork.sanitize import SanitizedString
 from presswork.text import text_makers
 
+from presswork.flask_app import template_filters
+
 app = Flask(__name__)
 csrf = CsrfProtect(app=app)
 app.config['SECRET_KEY'] = str(uuid.uuid4())
+
+# template filters are a safe way to convert whitespace to HTML, without turning off escaping
+app.add_template_filter(template_filters.newlines_to_br, name="newlines_to_br")
+app.add_template_filter(template_filters.tabs_to_nbsp, name="tabs_to_nbsp")
+
 
 logger = logging.getLogger('presswork')
 
@@ -65,6 +72,7 @@ class MarkovChainTextMakerForm(Form):
         if strategy not in _TEXT_MAKER_STRATEGY_NICKNAMES:
             raise ValidationError('strategy must be one of: {}'.format(strategy))
 
+
 @app.route("/", methods=['GET', 'POST', ])
 def markov():
     form = MarkovChainTextMakerForm()
@@ -96,7 +104,7 @@ def markov():
         # TODO allllllllllsooooooooo have to actually do the <br/> etc in the template, or it gets escaped
         #       and honestly even though this isn't a serious app, I am so allergic to turning autoescape off :sweat_smile:
         # probably this is what I need, https://gist.github.com/cemk/1324543
-        text_body = text_maker.make_sentences(count=count_of_sentences_to_make)
+        text_body = text_makers.rejoin(text_maker.make_sentences(count=count_of_sentences_to_make))
         text_title = text_makers.rejoin(text_maker.make_sentences(count=1))
 
         return render_template(
