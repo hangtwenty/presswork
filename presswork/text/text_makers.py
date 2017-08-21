@@ -60,6 +60,11 @@ from presswork.sanitize import SanitizedString
 logger = logging.getLogger("presswork")
 
 
+# TODO(hangtwenty) replace with classes, yes this basic type, but also NLTK kinds
+def rejoin(sentences_of_words, sentence_sep="\n", word_sep=" "):
+    return sentence_sep.join(word_sep.join(word for word in sentence) for sentence in sentences_of_words)
+
+
 
 class BaseTextMaker(object):
     """ common-denominator interface for making text from a generative model - so far, from markov chain models

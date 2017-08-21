@@ -12,3 +12,4 @@ class TestSmokeTests(object):
         response = testapp.get('/')
         assert response.status_code == 200
 
+# TODO definitely intend to do more than smoketests for this
