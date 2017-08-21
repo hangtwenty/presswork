@@ -51,22 +51,30 @@ def _crude_split_words(string_of_sentence):
 
 
 def crude_markov_chain(
-        # FIXME: this should just take list-of-lists (sentences, words) ; caller should do splitting etc.
-        # def make_text(source_text) :
-        #       source_text -> sentences_and_words = [[word, ...], [word, ...]] (using composable fns for splitting);
-        #       model = chain(sentences_and_words)
-        #       <exercise the model>
-        # def make_text(model) :
-        #       <exercise the model>
-        # so yeah pretty easy to see how refactoring to a TextMaker class would help.
         source_text=EXAMPLE_SOURCE,
         ngram_size=DEFAULT_NGRAM_SIZE,
         fn_to_split_sentences=_crude_split_sentences,
         fn_to_split_words=_crude_split_words,
 ):
-    model = {
-        (START_SYMBOL * ngram_size): [],
-    }
+    # FIXME: this should just take list-of-lists (sentences, words) ; caller should do splitting etc.
+    # def iter_make_sentences(source_text) :
+    #       source_text -> sentences_and_words = [[word, ...], [word, ...]] (using composable fns for splitting);
+    #       model = chain(sentences_and_words)
+    #       <exercise the model>
+    # def iter_make_sentences(model) :
+    #       <exercise the model>
+    # so yeah pretty easy to see how refactoring to a TextMaker class would help.
+
+    # model = {
+    #     # TODO mmm can I get rid of the starter
+    #     (START_SYMBOL * ngram_size): [],
+    # }
+
+    model = {}
+
+    # TODO really no source text handling should be done here, so move it out... this should take [[word,...]] already processed
+    if not source_text:
+        return model
 
     for sentence in _crude_split_sentences(source_text):
         words = fn_to_split_words(sentence)
@@ -100,13 +108,31 @@ def crude_markov_chain(
 
     return model
 
+def is_empty_model(model):
+    if not model:
+        return True
 
-def make_text(model, ngram_size=DEFAULT_NGRAM_SIZE, words_to_generate=100, join_with=" "):
-    output_words = []
+    if len(model.keys()) == 1:
+        # i.e. {('', ''): ['', '']} or {('', ''): ['', ...]} (happens when input is empty string)
+        return True
+
+    return False
+
+def iter_make_sentences(model, ngram_size=DEFAULT_NGRAM_SIZE, count_of_sentences=100, max_loops_per_sentence=100):
+    i = 0
+
     current_ngram = None
+    sentence = []
+    end_sentence = False
 
-    # TODO(hangtwenty) it should do a number of *sentences* to generate not number of words.
-    for i in xrange(0, words_to_generate + 1):
+    if is_empty_model(model):
+        yield sentence
+        raise StopIteration()
+
+    while i < count_of_sentences:
+
+        j = 0
+
         if not current_ngram:
             # Ye olde sentence start trick. # TODO(hangtwenty) refactor to helper fn, it's not very DRY right now.
             current_ngram = ((START_SYMBOL,) * ngram_size)
@@ -114,28 +140,25 @@ def make_text(model, ngram_size=DEFAULT_NGRAM_SIZE, words_to_generate=100, join_
         try:
             next_word_options = model[current_ngram]
             next_word = random.choice(next_word_options)
-            output_words.append(next_word)
+            sentence.append(next_word)
+            # logger.debug('this sentence now = {}'.format(sentence))
             current_ngram = current_ngram[1:] + (next_word,)
         except (KeyError, IndexError):
-            # "dangling", set current=None, to start new sentence.
+            # when we hit a 'dead end' we consider that the end of the 'sentence'
+            end_sentence = True
+
+        if j >= max_loops_per_sentence:
+            # also a fallback if sentence is going on too long (infinite loops are possible otherwise)
+            end_sentence = True
+
+        if end_sentence:
+            i += 1
+            j += 1
             current_ngram = None
+            end_sentence = False
 
-    # TODO(hangwenty) should return same list-of-lists ('sentences' and 'words'), leave joining to another caller,
-    # such that it could be pluggable.
-    return join_with.join(output_words)
+            yield sentence
+            sentence = []
 
+    raise StopIteration()
 
-class CrudeMarkovChainTextMaker(object):
-    """ minimal glue for these functions, so that other modules don't have to 'know' about this one.
-
-    instead of using this class directly, it is recommended to use the interface in `text_makers` module.
-    """
-
-    def __init__(self, model=None):
-        self.model = None
-
-    def build_model(self, *args, **kwargs):
-        self.model = crude_markov_chain(*args, **kwargs)
-
-    def make_text(self, *args, **kwargs):
-        return make_text(model=self.model, *args, **kwargs)
