@@ -38,15 +38,16 @@ END_SYMBOL = u""
 
 DEFAULT_NGRAM_SIZE = 2
 
+
 def _crude_split_sentences(string_of_full_text):
     # ATTN: this function is especially crude. it is only left here as a default/fallback.
-    # My intention is that, at text_makers module level, you can wire in a better splitter. # TODO make it so
+    # Idea is that, in the calling module (text_makers), you can wire in a better splitter. # TODO make it so
     return tuple(string_of_full_text.splitlines())
 
 
 def _crude_split_words(string_of_sentence):
     # ATTN: this function is especially crude. it is only left here as a default/fallback.
-    # My intention is that, at text_makers module level, you can wire in a better splitter. # TODO make it so
+    # Idea is that, in the calling module (text_makers), you can wire in a better splitter. # TODO make it so
     return tuple(string_of_sentence.split())
 
 
@@ -79,8 +80,7 @@ def crude_markov_chain(
     for sentence in _crude_split_sentences(source_text):
         words = fn_to_split_words(sentence)
 
-        # Ye olde sentence start trick. # TODO(hangtwenty) refactor to helper fn, it's not very DRY right now.
-        words_with_padding = ((START_SYMBOL,) * ngram_size) + words + (END_SYMBOL,)
+        words_with_padding = ngram_for_sentence_start(ngram_size) + words + (END_SYMBOL,)
 
         for i in xrange(0, len(words) + 1):
             ngram = tuple(words_with_padding[i:(i + ngram_size)])
@@ -104,41 +104,48 @@ def crude_markov_chain(
                 model[ngram].append(next_word)
 
     if logger.level == logging.DEBUG:
-        logger.debug('model=\n{}'.format(pprint.pformat(model, width=2)))
+        logger.debug(u'model=\n{}'.format(pprint.pformat(model, width=2)))
 
     return model
+
 
 def is_empty_model(model):
     if not model:
         return True
 
     if len(model.keys()) == 1:
-        # i.e. {('', ''): ['', '']} or {('', ''): ['', ...]} (happens when input is empty string)
+        # i.e. {('', ..): ['', ..]} (when input is empty string we get this model, and it is best to short-circuit)
         return True
 
     return False
 
-def iter_make_sentences(model, ngram_size=DEFAULT_NGRAM_SIZE, count_of_sentences=100, max_loops_per_sentence=100):
-    i = 0
+
+def iter_make_sentences(
+        crude_markov_model,
+        ngram_size=DEFAULT_NGRAM_SIZE,
+        count_of_sentences_to_generate=100,
+        max_loops_per_sentence=25):
 
     current_ngram = None
     sentence = []
     end_sentence = False
 
-    if is_empty_model(model):
+    _sentences_counter = 0
+    _per_sentence_loop_counter = 0
+
+    if is_empty_model(crude_markov_model):
         yield sentence
         raise StopIteration()
 
-    while i < count_of_sentences:
-
-        j = 0
+    while _sentences_counter < count_of_sentences_to_generate:
+        logger.debug('current sentence = {}, i (sentence#) = {}, per_sentence_loop_counter={}'.format(
+                sentence, _sentences_counter, _per_sentence_loop_counter))
 
         if not current_ngram:
-            # Ye olde sentence start trick. # TODO(hangtwenty) refactor to helper fn, it's not very DRY right now.
-            current_ngram = ((START_SYMBOL,) * ngram_size)
+            current_ngram = ngram_for_sentence_start(ngram_size)
 
         try:
-            next_word_options = model[current_ngram]
+            next_word_options = crude_markov_model[current_ngram]
             next_word = random.choice(next_word_options)
             sentence.append(next_word)
             # logger.debug('this sentence now = {}'.format(sentence))
@@ -147,18 +154,27 @@ def iter_make_sentences(model, ngram_size=DEFAULT_NGRAM_SIZE, count_of_sentences
             # when we hit a 'dead end' we consider that the end of the 'sentence'
             end_sentence = True
 
-        if j >= max_loops_per_sentence:
+        if _per_sentence_loop_counter >= max_loops_per_sentence:
             # also a fallback if sentence is going on too long (infinite loops are possible otherwise)
             end_sentence = True
 
         if end_sentence:
-            i += 1
-            j += 1
+            _sentences_counter += 1
+            _per_sentence_loop_counter = 0
             current_ngram = None
             end_sentence = False
 
             yield sentence
             sentence = []
+        else:
+            _per_sentence_loop_counter += 1
 
     raise StopIteration()
 
+
+def ngram_for_sentence_start(ngram_size):
+    """ makes more believable sentences if (a) model has special sentence-start and (b) gen uses same sentence starts
+
+    see the usage, and it'll make more sense ;-) refactored up to a function only to keep it DRY/ avoid future mistakes
+    """
+    return tuple((START_SYMBOL,) * ngram_size)
