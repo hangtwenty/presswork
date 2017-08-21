@@ -178,9 +178,7 @@ classes_by_all_names.update(classes_by_nickname)
 def create_text_maker(
         input_text=None,
         class_or_nickname="default",
-        state_size=constants.DEFAULT_NGRAM_SIZE,
-        *args,
-        **kwargs):
+        state_size=constants.DEFAULT_NGRAM_SIZE,):
     """ convenience factory to just "gimme a text maker" without knowing exact module layout. nicknames supported.
 
     :param input_text: the input text to load into the TextMaker class. (if not given, you can load it later.)
@@ -201,7 +199,7 @@ def create_text_maker(
     if not callable(klass):
         raise ValueError('klass={!r} is not callable. please pass a valid class or nickname'.format(klass))
 
-    text_maker = klass(state_size=state_size, *args, **kwargs)
+    text_maker = klass(state_size=state_size)
 
     if input_text:
         text_maker.input_text(input_text)

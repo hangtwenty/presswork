@@ -1,25 +1,59 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-
-"""Tests for `presswork` package."""
-
+""" Tests for presswork CLI
+"""
+from mock import patch
 import pytest
 
 from click.testing import CliRunner
 
 from presswork import cli
 
+
 @pytest.fixture
 def runner():
     return CliRunner()
+
+# FIXME(mfloering) this should be using fixtures
+def test_cli_input_from_file(runner):
+    result = runner.invoke(cli.main, args=['--input-text', '/tmp/FIXME_TMP_TEST.txt'], catch_exceptions=False)
+    assert "2015Enhancing" not in result.output
+    assert result.output.strip()
 
 
 def test_cli_default_strategy(runner):
     """ tests the ease-of-use requirement for the CLI, that with no --strategy arg, some default MC behavior happens.
     """
-    result = runner.invoke(cli.main, input="Foo is better than bar. Bar is better than foo", catch_exceptions=False)
+    result = runner.invoke(cli.main, input="Foo is better than bar. Foo is better than baz.", catch_exceptions=False)
     assert result.exit_code == 0
     assert 'better than' in result.output
+
+
+def test_cli_choose_strategy_crude(runner):
+    stdin = "a b c d a b c x"
+    # positive case
+    with patch(target="presswork.text.text_makers.TextMakerCrude.input_text") as mock:
+        result = runner.invoke(cli.main, input=stdin, args=["--strategy", "crude"], catch_exceptions=False)
+        assert result.exit_code == 0
+        assert mock.called
+
+    # another positive case
+    with patch(target="presswork.text.text_makers.TextMakerPyMarkovChain.input_text") as mock:
+        result = runner.invoke(cli.main, input=stdin, args=["--strategy", "pymc"], catch_exceptions=False)
+        assert result.exit_code == 0
+        assert mock.called
+
+    # negative case as sanity check - if invalid strategy the method would NOT be called
+    with patch(target="presswork.text.text_makers.TextMakerPyMarkovChain.input_text") as mock:
+        result = runner.invoke(cli.main, input=stdin, args=["--strategy", "unknown"], catch_exceptions=True)
+        assert not mock.called
+
+    # # TODO when I add markovify strategy, enable this
+    # # another positive case
+    # with patch(target="presswork.text.text_makers.TextMakerMarkovify.input_text") as mock:
+    #     result = runner.invoke(cli.main, input=stdin, args=["--strategy", "markovify"], catch_exceptions=False)
+    #     assert result.exit_code == 0
+    #     assert mock.called
 
 @pytest.mark.parametrize("stdin", [
     "",
