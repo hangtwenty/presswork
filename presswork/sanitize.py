@@ -7,8 +7,11 @@ SanitizedString will avoid running redundantly, by checking type of the input (g
     >>> assert chr(0) not in hello
     >>> assert SanitizedString(hello) == hello
 
-at time of writing there is only one sanitization filter in use, the removal of control characters like null etc.
-other functions could be added, as needed, to SANITIZERS.
+at time of writing there is only one sanitization filter in use:
+remove all control characters besides newlines and carriage returns. (remove null bytes etc.)
+other filter functions could be added, as needed, to SANITIZERS.
+
+(exploratory testing yielded undesirable behavior when feeding in null bytes and so on.)
 
 more info & doctests below
 """
@@ -16,14 +19,19 @@ more info & doctests below
 import re
 from UserString import UserString
 
-control_chars = ''.join(map(unichr, range(0, 32) + range(127, 160)))
-control_char_re = re.compile('[%s]' % re.escape(control_chars))
+_all_control_char_numbers = range(0, 32) + range(127, 160)
+_char_numbers_besides_newlines = [c for c in _all_control_char_numbers if c not in (ord("\n"), ord('\n'))]
+all_control_chars = map(unichr, _all_control_char_numbers)
+control_chars_besides_newlines = map(unichr, _char_numbers_besides_newlines)
+
+re_control_chars = re.compile('[%s]' % re.escape(''.join(all_control_chars)))
+re_control_chars_besides_newlines = re.compile('[%s]' % re.escape(''.join(control_chars_besides_newlines)))
 
 
-def remove_control_characters(string_or_unicode):
+def remove_control_characters(string_or_unicode, keep_newlines=False):
     """ remove control characters regardless of whether they are ASCII or unicode
 
-    solution is from here, https://stackoverflow.com/a/93029/884640
+    adapted solution from here, https://stackoverflow.com/a/93029/884640
     ... surprised there is no stdlib function for it, but this will do.
 
     some redundancy in this test but just to be thorough as well as obvious...
@@ -44,11 +52,19 @@ def remove_control_characters(string_or_unicode):
         >>> control_char_nums = range(0, 32) + range(127, 160)
         >>> for character in map(unichr, control_char_nums):
         ...     assert character not in all_chars_except_control_chars
+        >>> newline = chr(10)  # (using chr(10) because putting literal newline in doctest/docstring messes it up)
+        >>> x = remove_control_characters(newline + "hello" + null_byte + newline, keep_newlines=True)
+        >>> assert x == newline + "hello" + newline
+        >>> x = remove_control_characters(newline + "hello" + null_byte + newline, keep_newlines=False)
+        >>> assert x == "hello"
 
     :param string_or_unicode:
     :return:
     """
-    return control_char_re.sub('', string_or_unicode)
+    if keep_newlines:
+        return re_control_chars_besides_newlines.sub(u'', string_or_unicode)
+    else:
+        return re_control_chars.sub(u'', string_or_unicode)
 
 
 class SanitizedString(UserString):
@@ -73,7 +89,7 @@ class SanitizedString(UserString):
     """
 
     SANITIZERS = (
-        remove_control_characters,
+        lambda s: remove_control_characters(s, keep_newlines=True),
     )
 
     def __init__(self, string):
@@ -84,3 +100,5 @@ class SanitizedString(UserString):
                 string = sanitizer(string)
             self.data = string
 
+    def __unicode__(self):
+        return unicode(self.data)
