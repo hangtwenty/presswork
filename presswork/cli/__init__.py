@@ -7,7 +7,8 @@ import click
 
 from presswork import constants
 from presswork.log import setup_logging
-from presswork.text_makers.text_maker import create_text_maker
+from presswork.sanitize import SanitizedString
+from presswork.text.text_makers import create_text_maker
 
 
 @click.command()
@@ -47,9 +48,8 @@ def main(strategy, ngram_size, input_text, count, input_encoding, output_encodin
         with codecs.open(input_text, 'r', encoding=input_encoding) as f:
             input_text = f.read()
 
-    # TODO this should use text_makers.create(strategy, state_size...) (let that module take care of itself)
     text_maker = create_text_maker(
-            input_text=input_text,
+            input_text=SanitizedString(input_text),
             ngram_size=ngram_size)
 
     # TODO over here we shouldn't know about sentences and joining. when text maker has a make_text method, switch to that

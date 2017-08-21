@@ -75,6 +75,7 @@ class PyMarkovChainWithNLTK(object):
 
     See module header for notes on AUTHORSHIP and CAVEATS.
     """
+    # TODO this should use tmpdir
     DEFAULT_DB_FILE_PATH = os.path.join(os.path.dirname(__file__), "presswork_markov_db")
     DEFAULT_WINDOW_SIZE_WORDS = 2
 
@@ -86,6 +87,8 @@ class PyMarkovChainWithNLTK(object):
             word_tokenizer=None
     ):
         self.window = window
+
+        # TODO(hangtwenty) get rid of database storage until/unless someone calls dump.
 
         self.db = None
         self.db_file_path = db_file_path
@@ -99,7 +102,7 @@ class PyMarkovChainWithNLTK(object):
         if self.db is None:
             self.db = _db_factory()
 
-        self._word_tokenizer = word_tokenizer or TreebankWordTokenizer()
+        self._word_tokenizer = word_tokenizer or TrWordTokenizer()
         self._sentence_tokenizer = nltk.data.load('tokenizers/punkt/english.pickle')
 
     @classmethod

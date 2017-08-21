@@ -1,6 +1,8 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
+# TODO meld this into test_parity, and then it will get refactored later.
+
 """
 test_presswork
 ----------------------------------
@@ -13,11 +15,12 @@ import os
 
 import pytest
 
-from presswork.text_maker._pymarkovchain_fork import PyMarkovChainWithNLTK
+from presswork.text._pymarkovchain_fork import PyMarkovChainWithNLTK
 
 SentencesTestCase = namedtuple('SentencesTestCase', ['text', 'phrase_in_each_sentence'])
 
 TEST_CASE_ZEN_OF_PYTHON = SentencesTestCase(
+    phrase_in_each_sentence="better than",
     text="""
 Beautiful is better than ugly.
 Explicit is better than implicit.
@@ -25,7 +28,7 @@ Simple is better than complex.
 Complex is better than complicated.
 Flat is better than nested.
 Sparse is better than dense.
-""", phrase_in_each_sentence="better than")
+""")
 
 
 # TODO more test cases
@@ -34,7 +37,7 @@ Sparse is better than dense.
 
 # TODO add skipif( <corpora not downloaded> )
 
-@pytest.fixture
+@pytest.fixture         # FIXME parametrize this - do both 'raw' and 'wrapped' PyMarkovChainWithNLTK......
 def text_maker(tmpdir):
     db_file_path = os.path.join(str(tmpdir), "presswork_markov_db")
     text_maker = PyMarkovChainWithNLTK.with_persistence(db_file_path)
@@ -46,13 +49,12 @@ def test_high_level_behavior(text_maker, test_case):
     """ Primary acceptance test: does the Markov Chain text maker generate text as expected?
 
     Text generation with Markov Chains is not deterministic (that's the fun part!)
-    so we test by
-        (a) ensuring each sentence input has some key phrase, so that the model
-            always ends up using this key phrase in its output and then
-        (b) asserting that key phrase is indeed in the output.
+    so by taking an assumption we can do a test
+        assumption: each sentence input has some 2-gram that is the same (i.e. "better than")
+        then: even though chance is involved, "better than" appears in each output
 
-    We also check that each of the "words" (very naïvely defined) in the output is in the
-    original output. That'll always be true.
+    We also check that each of the "words" (very naively defined) in the output is in the
+    original input.
     """
     _sentences = test_case.text.strip().splitlines()
     assert all(test_case.phrase_in_each_sentence in sentence for sentence in _sentences), \

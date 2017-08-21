@@ -52,8 +52,8 @@ design notes -- TextMaker etc.
 import logging
 
 from presswork import constants
-from presswork.text_makers import _crude
-from presswork.text_makers import _pymarkovchain_fork
+from presswork.text import _crude_markov
+from presswork.text import _pymarkovchain_fork
 
 from presswork.sanitize import SanitizedString
 
@@ -138,15 +138,17 @@ class TextMakerCrude(BaseTextMaker):
     def __init__(self, *args, **kwargs):
         super(TextMakerCrude, self).__init__()
         # For crude, there is no class,  Explicitly noting that there is no class to forward to for this implementation. is just functions
-        self.strategy = _crude
+        self.strategy = _crude_markov
         self._model = {}
 
     def input_text(self, string):
         self._model = self.strategy.crude_markov_chain(source_text=string, ngram_size=self.state_size)
 
     def make_sentence(self):
-        return self.strategy.iter_make_sentences(
-                model=self._model, ngram_size=self.state_size, count_of_sentences=1)
+        sentences = [
+            self.strategy.iter_make_sentences(
+                model=self._model, ngram_size=self.state_size, count_of_sentences=1)]
+        return sentences[0]
 
     def iter_sentences(self, count):
         return self.strategy.iter_make_sentences(
