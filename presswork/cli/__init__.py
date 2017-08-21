@@ -8,7 +8,7 @@ import click
 from presswork import constants
 from presswork.log import setup_logging
 from presswork.sanitize import SanitizedString
-from presswork.text.text_makers import create_text_maker
+from presswork.text import text_makers
 
 
 @click.command()
@@ -28,8 +28,7 @@ from presswork.text.text_makers import create_text_maker
               default=constants.DEFAULT_NGRAM_SIZE,
               show_default=True)
 @click.option('-s', '--strategy',
-              # type=click.Choice(['pymc', 'crude']), # TODO add pymc
-              type=click.Choice(['crude']),
+              type=click.Choice(['pymc', 'crude']),
               help="which implementation/strategy to use for markov chain text generation. "
                    "'markovify' is the most performant and best for most purposes. "
                    "'pymc' is based on PyMarkovChain. "
@@ -48,14 +47,15 @@ def main(strategy, ngram_size, input_text, count, input_encoding, output_encodin
         with codecs.open(input_text, 'r', encoding=input_encoding) as f:
             input_text = f.read()
 
-    text_maker = create_text_maker(
+    text_maker = text_makers.create_text_maker(
             input_text=SanitizedString(input_text),
+            strategy=strategy,
             ngram_size=ngram_size)
 
     # TODO over here we shouldn't know about sentences and joining. when text maker has a make_text method, switch to that
     sentences = text_maker.make_sentences(count)
     logger.debug('sentences=' + str(sentences))
-    result = "\n".join(" ".join(word for word in sentence) for sentence in sentences)
+    result = text_makers.rejoin(sentences)
 
     UTF8Writer = codecs.getwriter(output_encoding)
     sys.stdout = UTF8Writer(sys.stdout)
