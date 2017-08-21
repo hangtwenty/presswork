@@ -1,9 +1,24 @@
-""" common sanitization functions, should be used *at least* before loading source text.
-"""
-import re
+""" throw your strings to SanitizedString and "ensure" they have been sanitized, such as removing control characters.
 
-control_chars = ''.join(map(unichr, range(0,32) + range(127,160)))
+SanitizedString will avoid running redundantly, by checking type of the input (good for Very Big Strings)
+
+    >>> hello = SanitizedString(chr(0) + "hello")
+    >>> assert hello == "hello"
+    >>> assert chr(0) not in hello
+    >>> assert SanitizedString(hello) == hello
+
+at time of writing there is only one sanitization filter in use, the removal of control characters like null etc.
+other functions could be added, as needed, to SANITIZERS.
+
+more info & doctests below
+"""
+
+import re
+from UserString import UserString
+
+control_chars = ''.join(map(unichr, range(0, 32) + range(127, 160)))
 control_char_re = re.compile('[%s]' % re.escape(control_chars))
+
 
 def remove_control_characters(string_or_unicode):
     """ remove control characters regardless of whether they are ASCII or unicode
@@ -36,5 +51,36 @@ def remove_control_characters(string_or_unicode):
     return control_char_re.sub('', string_or_unicode)
 
 
-if __name__ == "__main__":
-    import pdb; pdb.set_trace()
+class SanitizedString(UserString):
+    """ sanitizes string upon input - unless it's already been sanitized.
+
+    SanitizedString will avoid running redundantly, by checking type of the input (good for Very Big Strings)
+
+        >>> assert SanitizedString(u"hello") == u"hello"
+        >>> assert isinstance(u"hello", unicode)
+        >>> assert not SanitizedString("")  # confirm truthiness is same as normal strings
+        >>> assert not SanitizedString(u"")  # confirm truthiness is same as normal strings
+        >>> assert SanitizedString("hello")
+        >>> null_byte = chr(0)
+        >>> assert null_byte
+        >>> assert null_byte != ''
+        >>> assert SanitizedString(null_byte) == ''
+        >>> assert SanitizedString(null_byte + "hello") == "hello"
+        >>> assert SanitizedString(SanitizedString(SanitizedString(SanitizedString(u'idempotent')))) == u'idempotent'
+        >>> hi_san = SanitizedString('hi')
+        >>> # when avoiding redundant sanitization, we would expect the internal string to be exact same object
+        >>> assert SanitizedString(SanitizedString(hi_san)).data is hi_san.data
+    """
+
+    SANITIZERS = (
+        remove_control_characters,
+    )
+
+    def __init__(self, string):
+        if isinstance(string, SanitizedString):
+            self.data = string.data
+        else:
+            for sanitizer in self.SANITIZERS:
+                string = sanitizer(string)
+            self.data = string
+
