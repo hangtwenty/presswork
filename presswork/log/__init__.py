@@ -1,3 +1,8 @@
+""" boilerplate to set up logging cleanly and avoid redundant setup (which can have unintended side-effects)
+
+note, this module is intentionally not called `logging`, as that can mask stdlib `logging` - at least when
+certain dynamic importers run like PyCharm's test runner. leave it as `log` ;-)
+"""
 import logging
 import logging.config
 import os
@@ -15,7 +20,7 @@ def setup_logging(path_to_logging_yaml=os.path.join(HERE, "logging.yaml")):
     if _PRESSWORK_LOGGING_HAS_BEEN_SET_UP:
         logger = logging.getLogger('presswork')
         logger.warning('setup_logging() has already been called! short-circuiting and returning with no changes.')
-        return
+        return logger
 
     if path_to_logging_yaml:
         with open(path_to_logging_yaml, 'r') as f:

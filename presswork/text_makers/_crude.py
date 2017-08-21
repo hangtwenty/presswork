@@ -40,13 +40,13 @@ DEFAULT_NGRAM_SIZE = 2
 
 def _crude_split_sentences(string_of_full_text):
     # ATTN: this function is especially crude. it is only left here as a default/fallback.
-    # My intention is that, at text_maker module level, you can wire in a better splitter. # TODO make it so
+    # My intention is that, at text_makers module level, you can wire in a better splitter. # TODO make it so
     return tuple(string_of_full_text.splitlines())
 
 
 def _crude_split_words(string_of_sentence):
     # ATTN: this function is especially crude. it is only left here as a default/fallback.
-    # My intention is that, at text_maker module level, you can wire in a better splitter. # TODO make it so
+    # My intention is that, at text_makers module level, you can wire in a better splitter. # TODO make it so
     return tuple(string_of_sentence.split())
 
 
@@ -123,3 +123,19 @@ def make_text(model, ngram_size=DEFAULT_NGRAM_SIZE, words_to_generate=100, join_
     # TODO(hangwenty) should return same list-of-lists ('sentences' and 'words'), leave joining to another caller,
     # such that it could be pluggable.
     return join_with.join(output_words)
+
+
+class CrudeMarkovChainTextMaker(object):
+    """ minimal glue for these functions, so that other modules don't have to 'know' about this one.
+
+    instead of using this class directly, it is recommended to use the interface in `text_makers` module.
+    """
+
+    def __init__(self, model=None):
+        self.model = None
+
+    def build_model(self, *args, **kwargs):
+        self.model = crude_markov_chain(*args, **kwargs)
+
+    def make_text(self, *args, **kwargs):
+        return make_text(model=self.model, *args, **kwargs)

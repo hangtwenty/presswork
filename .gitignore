@@ -1,7 +1,7 @@
-# XXX yes this includes .gitignore stuff that 'should' be at Global level
+# XXX this does include some .gitignore stuff that 'should' be at Global level
 # but I don't mind having redundant info across .gitignores to avoid stupid mistakes ;-)
 
-dev_stashed
+dev_*
 
 # ======================================================================== #
 # NLTK
