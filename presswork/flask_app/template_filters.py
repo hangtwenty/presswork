@@ -27,11 +27,10 @@ def tabs_to_nbsp(value, indent_size=4):
     """ Converts whitespace tabs to HTML: nonbreaking spaces `&nbsp;`
 
         >>> tab = chr(9)                # (whitespace is goofy in doctests)
-        >>> tabs_to_nbsp('\t')
         >>> str(tabs_to_nbsp(tab + 'Indented by 2.', indent_size=2))
         '&nbsp;&nbsp;Indented by 2.'
-        >>> str(tabs_to_nbsp(tab + 'Indented by 4e.', indent_size=4))
-        '&nbsp;&nbsp;Indented by 4.'
+        >>> str(tabs_to_nbsp(tab + 'Indented by 4.', indent_size=4))
+        '&nbsp;&nbsp;&nbsp;&nbsp;Indented by 4.'
     """
     return Markup(value.replace('\t', '&nbsp;' * indent_size))
 

@@ -9,15 +9,15 @@ usage notes -- TextMaker & subclasses are the main entry point
         (examples below put in tiny amount of input text so that output is same every time.)
 
         >>> text_maker = create_text_maker("Foo is better than bar")
-        >>> result = text_maker.make_sentence()
-        >>> assert result.startswith("Foo")
+        >>> result = text_maker.make_sentences(1)
+        >>> assert rejoin(result).startswith("Foo")
         >>> text_maker = create_text_maker("Foo is better than bar", class_or_nickname="crude")
-        >>> result = text_maker.make_sentence()
-        >>> assert result.startswith("Foo")
-        >>> text_maker = TextMakerPyMarkovChain()
+        >>> result = text_maker.make_sentences(1)
+        >>> assert rejoin(result).startswith("Foo")
+        >>> text_maker = TextMakerCrude()
         >>> text_maker.input_text("Foo is better than bar")
-        >>> result = text_maker.make_sentence()
-        >>> assert result.startswith("Foo")
+        >>> result = text_maker.make_sentences(1)
+        >>> assert rejoin(result).startswith("Foo")
 
     * composition is encouraged for putting together further variants. this can be done on the fly;
         attributes such as TextMaker.strategy are *not* protected, so they can be accessed directly and customized.
