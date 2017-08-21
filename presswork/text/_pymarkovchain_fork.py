@@ -88,8 +88,6 @@ class PyMarkovChainWithNLTK(object):
     ):
         self.window = window
 
-        # TODO(hangtwenty) get rid of database storage until/unless someone calls dump.
-
         self.db = None
         self.db_file_path = db_file_path
         if self.db_file_path:
@@ -97,20 +95,28 @@ class PyMarkovChainWithNLTK(object):
                 with open(self.db_file_path, 'rb') as dbfile:
                     self.db = pickle.load(dbfile)
             except (IOError, ValueError):
-                logging.warn('Database file corrupt or not found, using empty database')
+                logging.warn('db_file_path given, but unreadable (not found, or corrupt), using empty database')
 
         if self.db is None:
             self.db = _db_factory()
 
-        self._word_tokenizer = word_tokenizer or TrWordTokenizer()
+        self._word_tokenizer = word_tokenizer or TreebankWordTokenizer()
         self._sentence_tokenizer = nltk.data.load('tokenizers/punkt/english.pickle')
 
+    #@DeprecationWarning TODO find usages, update to use something else, then delete this method
     @classmethod
     def with_persistence(self, db_file_path=DEFAULT_DB_FILE_PATH, **kwargs):
         return PyMarkovChainWithNLTK(db_file_path=db_file_path, **kwargs)
 
+    @property
+    def _special_ngram(self):
+        # The original PyMarkovChain implementation used this as a beginning (regardless of ngram size)
+        # ... I consider this "legacy" so I'm treading lightly in some ways, i.e. not removing this convention,
+        # ... however I wanted to DRY up the usages a little.
+        return (SPECIAL_TOKEN,)
+
     def increment_words(self, words):
-        self.db[(SPECIAL_TOKEN,)][words[0]] += 1
+        self.db[self._special_ngram][words[0]] += 1
 
     def database_init(self, text_input_as_string):
         """ Generate word probability database from raw content string """
@@ -118,7 +124,7 @@ class PyMarkovChainWithNLTK(object):
             self._sentence_tokenizer.tokenize(text_input_as_string)
         # I'm using the database to temporarily store word counts
         # We need a special symbol for the beginning of a sentence.
-        self.db[(SPECIAL_TOKEN,)][SPECIAL_TOKEN] = 0.0
+        self.db[self._special_ngram][SPECIAL_TOKEN] = 0.0
         for line in text_input_as_string:
             words = self._word_tokenizer.tokenize(line)
             if len(words) == 0:
@@ -159,6 +165,20 @@ class PyMarkovChainWithNLTK(object):
     def database_clear(self):
         os.unlink(self.db_file_path)
 
+    def make_sentences_list(self, number, seed_str=None):
+        if seed_str:
+            seed = self._seed_str_to_seed_tokens(seed_str)
+        else:
+            seed = self._special_ngram
+
+        sentences = []
+        for _ in range(0, number):
+            sentences.append(self._generate_sentence_as_list(seed))
+
+        return sentences
+
+    # TODO(hangtwenty) get rid of these functions that stringify before returning (DEPRECATED...)
+    @DeprecationWarning
     def make_sentences(self, number):
         sentences = []
         for _ in range(0, number):
@@ -166,28 +186,37 @@ class PyMarkovChainWithNLTK(object):
         generated = u"  ".join(sentences)
         return PyMarkovChainWithNLTK.post_process(generated)
 
+    #@DeprecationWarning TODO find usages, update to use something else, then delete this method
     def make_sentence(self):
         """ Generate a "sentence" with the database of known text """
-        generated = self._accumulate_with_seed((SPECIAL_TOKEN,))
+        generated = self._accumulate_with_seed(self._special_ngram)
         return PyMarkovChainWithNLTK.post_process(generated)
 
+    #@DeprecationWarning TODO find usages, update to use something else, then delete this method
     def make_sentence_with_seed(self, seed):
         """ Generate a "sentence" with the database and a given word """
-        # using str.split here means we're contructing the list in memory
-        # but as the generated sentence only depends on the last word of the seed
-        # I'm assuming seeds tend to be rather short.
-        words = seed.split()
-        if (words[-1],) not in self.db:
-            # The only possible way it won't work is if the last word is not known
-            raise EndOfChainException(u'Could not continue string: ' + seed)
+        words = self._seed_str_to_seed_tokens(seed)
         generated = self._accumulate_with_seed(words)
         return PyMarkovChainWithNLTK.post_process(generated)
 
+    def _seed_str_to_seed_tokens(self, seed_str):
+        # FIXME hmm, not very clear on its own but was refactored out because it's subtle and was duplicated.. (DRY up)
+        # using str.split here means we're contructing the list in memory
+        # but as the generated sentence only depends on the last word of the seed
+        # I'm assuming seeds tend to be rather short.
+        words = seed_str.split()
+        if (words[-1],) not in self.db:
+            # The only possible way it won't work is if the last word is not known
+            raise EndOfChainException(u'Could not continue string: ' + seed_str)
+        return words
+
+    #@DeprecationWarning TODO find usages, update to use something else, then delete this method
     @staticmethod
     def post_process(string):
         string = PyMarkovChainWithNLTK._remove_space_before_phrase_end_punctuation(string)
         return string
 
+    #@DeprecationWarning TODO for this specific one, get rid of in this class, but maybe move somewhere generic, it's handy
     @staticmethod
     def _remove_space_before_phrase_end_punctuation(string):
         """ Replace " . " with ". ", and so on, for other punctuation that probably ends sentences
@@ -195,7 +224,7 @@ class PyMarkovChainWithNLTK(object):
         """
         return re.sub(r'\s([.,!?:;](?:\s|$))', r'\1', string)
 
-    def _accumulate_with_seed(self, seed):
+    def _generate_sentence_as_list(self, seed):
         """ Accumulate the generated sentence with a given single word as a
         seed """
         next_word = self._next_word(seed)
@@ -203,11 +232,18 @@ class PyMarkovChainWithNLTK(object):
         while next_word:
             sentence.append(next_word)
             next_word = self._next_word(sentence)
-        return ' '.join(sentence).strip()
+        return sentence
+
+    # TODO(hangtwenty) get rid of these functions that stringify before returning (DEPRECATED...)
+    #@DeprecationWarning TODO find usages, update to use something else, then delete this method
+    def _accumulate_with_seed(self, seed):
+        """ Accumulate the generated sentence with a given single word as a
+        seed """
+        return ' '.join(self._generate_sentence_as_list(seed))
 
     def _next_word(self, last_words):
         last_words = tuple(last_words)
-        if last_words != (SPECIAL_TOKEN,):
+        if last_words != self._special_ngram:
             while last_words not in self.db:
                 last_words = last_words[1:]
                 if not last_words:

@@ -85,7 +85,6 @@ class BaseTextMaker(object):
         """
         self.state_size = state_size
 
-        logger.debug("{!r} initialized".format(self))
 
     def __repr__(self):
         # TODO ensure all params are in this repr()
@@ -98,15 +97,8 @@ class BaseTextMaker(object):
         """
         raise NotImplementedError()
 
-    def make_sentence(self):
-        raise NotImplementedError()
-
-    def iter_sentences(self, count):
-        for __ in xrange(0, count):
-            yield self.make_sentence()
-
     def make_sentences(self, count):
-        return list(self.iter_sentences(count))
+        return NotImplementedError()
 
 
 class TextMakerPyMarkovChain(BaseTextMaker):
@@ -127,10 +119,10 @@ class TextMakerPyMarkovChain(BaseTextMaker):
         # should instead be doing SentencesAndWords thing, and passing THAT...
         # FIXME this MIGHT end up meaning that I delete _pymarkovchain_fork from this repo..........
         # and can just use it as a direct dependency....!? Need to look at that source.
-        self.strategy.database_init(string)
+        self.strategy.database_init(unicode(string))
 
-    def make_sentence(self):
-        return self.strategy.make_sentence()
+    def make_sentences(self, count):
+        return self.strategy.make_sentences_list(number=count)
 
 
 class TextMakerCrude(BaseTextMaker):
@@ -142,22 +134,17 @@ class TextMakerCrude(BaseTextMaker):
 
     def __init__(self, *args, **kwargs):
         super(TextMakerCrude, self).__init__()
-        # For crude, there is no class,  Explicitly noting that there is no class to forward to for this implementation. is just functions
+        # In the case of _crude_markov it's implemented with just functions on a module
         self.strategy = _crude_markov
         self._model = {}
 
     def input_text(self, string):
         self._model = self.strategy.crude_markov_chain(source_text=string, ngram_size=self.state_size)
 
-    def make_sentence(self):
-        sentences = [
-            self.strategy.iter_make_sentences(
-                model=self._model, ngram_size=self.state_size, count_of_sentences=1)]
-        return sentences[0]
-
-    def iter_sentences(self, count):
-        return self.strategy.iter_make_sentences(
-                model=self._model, ngram_size=self.state_size, count_of_sentences=count)
+    def make_sentences(self, count):
+        iter_sentences_of_words = self.strategy.iter_make_sentences(
+                crude_markov_model=self._model, ngram_size=self.state_size, count_of_sentences_to_generate=count)
+        return list(iter_sentences_of_words)
 
 
 # ====================================================================================================

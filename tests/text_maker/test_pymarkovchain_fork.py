@@ -38,14 +38,14 @@ Sparse is better than dense.
 # TODO add skipif( <corpora not downloaded> )
 
 @pytest.fixture         # FIXME parametrize this - do both 'raw' and 'wrapped' PyMarkovChainWithNLTK......
-def text_maker(tmpdir):
+def pymc(tmpdir):
     db_file_path = os.path.join(str(tmpdir), "presswork_markov_db")
-    text_maker = PyMarkovChainWithNLTK.with_persistence(db_file_path)
-    return text_maker
+    pymc = PyMarkovChainWithNLTK.with_persistence(db_file_path)
+    return pymc
 
 
 @pytest.mark.parametrize(('test_case'), [TEST_CASE_ZEN_OF_PYTHON])
-def test_high_level_behavior(text_maker, test_case):
+def test_high_level_behavior(pymc, test_case):
     """ Primary acceptance test: does the Markov Chain text maker generate text as expected?
 
     Text generation with Markov Chains is not deterministic (that's the fun part!)
@@ -61,10 +61,10 @@ def test_high_level_behavior(text_maker, test_case):
         ("SentencesTestCase sanity check failed: "
          "a SentencesTestCase should have some phrase in each sentence (line)!")
 
-    text_maker.database_init(test_case.text)
+    pymc.database_init(test_case.text)
 
     for x in range(0, len(_sentences) * 3):
-        output_text = text_maker.make_sentence()
+        output_text = pymc.make_sentence()
         print output_text
         assert test_case.phrase_in_each_sentence in output_text
 
@@ -79,22 +79,22 @@ def test_post_process():
 
 
 @pytest.mark.parametrize(('test_case'), [TEST_CASE_ZEN_OF_PYTHON])
-def test_database_persistence(text_maker, test_case):
-    assert test_case.phrase_in_each_sentence not in text_maker.make_sentence()
-    text_maker.database_init(test_case.text)
-    assert test_case.phrase_in_each_sentence in text_maker.make_sentence()
-    text_maker.database_dump()
-    text_maker.database_clear()
-    text_maker.database_init(test_case.text)
-    assert test_case.phrase_in_each_sentence in text_maker.make_sentence()
+def test_database_persistence(pymc, test_case):
+    assert test_case.phrase_in_each_sentence not in pymc.make_sentence()
+    pymc.database_init(test_case.text)
+    assert test_case.phrase_in_each_sentence in pymc.make_sentence()
+    pymc.database_dump()
+    pymc.database_clear()
+    pymc.database_init(test_case.text)
+    assert test_case.phrase_in_each_sentence in pymc.make_sentence()
 
     # dump DB, use another instance to load DB...
-    text_maker.database_dump()
+    pymc.database_dump()
     # we dumped the DB so another instance w/ same db_file_path argument should behave same.
-    text_maker_2 = PyMarkovChainWithNLTK.with_persistence(text_maker.db_file_path)
+    text_maker_2 = PyMarkovChainWithNLTK.with_persistence(pymc.db_file_path)
     # notice we do not call `database_init` - that doesn't need to happen
     assert test_case.phrase_in_each_sentence in text_maker_2.make_sentence()
 
-    text_maker.database_clear()
+    pymc.database_clear()
     # even though we just deleted the db file, db is still in memory...
-    assert test_case.phrase_in_each_sentence in text_maker.make_sentence()
+    assert test_case.phrase_in_each_sentence in pymc.make_sentence()
