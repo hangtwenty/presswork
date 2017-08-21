@@ -65,11 +65,24 @@ def rejoin(sentences_of_words, sentence_sep="\n", word_sep=" "):
     return sentence_sep.join(word_sep.join(word for word in sentence) for sentence in sentences_of_words)
 
 
+class TextMakerIsLockedException(ValueError):
+    """ raise when someone tries to mutate TextMaker input text/state size/ etc after it is already loaded & locked
+    """
 
 class BaseTextMaker(object):
     """ common-denominator interface for making text from a generative model - so far, from markov chain models
 
-    SEE ALSO: design notes at the header of the module.
+    Subclasses can be "lazy" until input_text() is called. after that, it "locks" and only text generation is possible.
+    Typical usage should use the `create_text_maker` factory within this module, all 'convenience' is moved to there,
+    so we can keep these minimum-necessary.
+
+    Q:  Why lock after input_text is called?
+    A:  trying to keep things easy, but safe. With 1+ backends, calling input_text() repeatedly may not
+        achieve desired results. additionally, changing state_size after calling input_text() could cause astonishment.
+        Instead of allowing for some and denying for others, we just keep it consistent.
+
+    See also: overall design notes at the header of the module, which covers TextMakers as well as collaborators.
+    (Won't re-hash those notes here.)
     """
 
     DEFAULT_STATE_SIZE = constants.DEFAULT_NGRAM_SIZE
@@ -78,31 +91,70 @@ class BaseTextMaker(object):
     def __init__(self, state_size=DEFAULT_STATE_SIZE):
         """
         :param state_size: state size AKA window size AKA N-gram size. how many tokens (e.g. words) per 'prefix'; or,
-            the 'N' in 'N-gram'. one more way to think of it: how long of 'prefixes' to model in the text.
-            increasing this will increase the 'tightness' (and 'familiarity' or 'closeness'). 2 is a good default.
-            this DOES get passed right to the underlying markov chain model, but we DO need to know it at the top
-            level too, for generation. if we don't, we'd have to make some inferences (unnecessary complexity...)
+            the 'N' in 'N-gram'. this needs to be known both at the generate/load of the model (i.e. markov chain),
+            and at the text generation time (and they need to match).
         """
-        self.state_size = state_size
+        self._state_size = state_size
+        self._locked = False
 
+    def clone(self, ):
+        if self.is_locked:
+            raise TextMakerIsLockedException('instance is locked! copying might be ago, aborting for max safety')
+
+        # TODO(hangtwenty) ensure this does all relevant params from constructor
+        return self.__class__(state_size=self.state_size)
+
+    def _lock(self):
+        """ lock upon first input_text call, to avoid changing things after loading input text for the first time
+
+        (this is private, subclasses or callers should not need to call it or think about it.)
+        """
+        self._locked = True
+
+    @property
+    def is_locked(self):
+        return self._locked
+
+    @property
+    def state_size(self):
+        return self._state_size
+
+    @state_size.setter
+    def state_size(self, value):
+        """ refuses to change state_size property if the TextMaker has been locked
+        """
+        if self.is_locked:
+            raise TextMakerIsLockedException(
+                    "locked! state_size cannot be changed after locking (such as after loading input text), "
+                    "to avoid unintended mixing of state_size values")
+        self._state_size = value
 
     def __repr__(self):
         # TODO ensure all params are in this repr()
         return "{}(state_size={})".format(self.__class__.__name__, self.state_size)
 
-    def input_text(self, string):
-        """ build a fresh model from this input text.
-
-        specfically take a string of input text, parse into SentencesAndWords, and load into the strategy instance.
+    def _input_text(self, string):
+        """ build a fresh model from this input text. PRIVATE but has real implementation. see also `input_text()
         """
         raise NotImplementedError()
+
+    def input_text(self, string):
+        """ build a fresh model from this input text. PUBLIC - handles _lock to ensure input only happens once
+        """
+        if self.is_locked:
+            raise TextMakerIsLockedException("locked! has input_text() already been called? (can only be called once)")
+        result = self._input_text(string)
+        self._lock()
+        return result
 
     def make_sentences(self, count):
         return NotImplementedError()
 
 
 class TextMakerPyMarkovChain(BaseTextMaker):
-    """ text maker with implementation by PyMarkovChain[WithNLTK], pretty correct but no performance tuning
+    """ text maker with implementation by PyMarkovChain[WithNLTK], pretty well-behaved but no performance tuning
+
+    For most usages, this is preferable to 'crude' at least. but it is not the best choice overall. (see 'markovify')
     """
     NICKNAME = 'pymc'
 
@@ -114,11 +166,7 @@ class TextMakerPyMarkovChain(BaseTextMaker):
                 window=self.state_size)
         assert isinstance(self.strategy, _pymarkovchain_fork.PyMarkovChainWithNLTK), "PyCharm type hint"
 
-    def input_text(self, string):
-        # TODO(hangtwenty) instead of letting this impl do its own sentence handling,
-        # should instead be doing SentencesAndWords thing, and passing THAT...
-        # FIXME this MIGHT end up meaning that I delete _pymarkovchain_fork from this repo..........
-        # and can just use it as a direct dependency....!? Need to look at that source.
+    def _input_text(self, string):
         self.strategy.database_init(unicode(string))
 
     def make_sentences(self, count):
@@ -126,9 +174,10 @@ class TextMakerPyMarkovChain(BaseTextMaker):
 
 
 class TextMakerCrude(BaseTextMaker):
-    """ text maker using homegrown/minimal/basic implementation, not very correct and poor performance
+    """ text maker using 'crude' implementation, which is homegrown and indeed, crude.
 
-    this one shouldn't be used often, should be used for development and exploration during development or play.
+    For most usages, the other strategies should be preferred. (rationale for keeping is explained in _crude_markov,
+    module docstring, etc. - but in short, it has to do with how this is just a repository for playing around.)
     """
     NICKNAME = 'crude'
 
@@ -138,7 +187,7 @@ class TextMakerCrude(BaseTextMaker):
         self.strategy = _crude_markov
         self._model = {}
 
-    def input_text(self, string):
+    def _input_text(self, string):
         self._model = self.strategy.crude_markov_chain(source_text=string, ngram_size=self.state_size)
 
     def make_sentences(self, count):
@@ -151,44 +200,53 @@ class TextMakerCrude(BaseTextMaker):
 
 DefaultTextMaker = TextMakerCrude  # TODO(hangtwenty) change default to markovify later on.
 
-# Table of class lookups by stringified names & nicknames - used by different contexts mostly in other modules.
-classes_by_name = {klass.__name__: klass for klass in BaseTextMaker.__subclasses__()}
+_classes_by_nickname = {klass.NICKNAME: klass for klass in BaseTextMaker.__subclasses__()}
+CLASS_NICKNAMES = _classes_by_nickname.keys()
 
-classes_by_nickname = {klass.NICKNAME: klass for klass in BaseTextMaker.__subclasses__()}
-classes_by_nickname["default"] = DefaultTextMaker
 
-classes_by_all_names = {}
-classes_by_all_names.update(classes_by_name)
-classes_by_all_names.update(classes_by_nickname)
+def _get_text_maker_class(string):
+    """ helper for the factory below, and test suite, to help this module take care of/ expose itself
+    """
+    if string == "default":
+        return DefaultTextMaker
 
-# TODO(hangtwenty) should expose state_size etc here
+    classes_by_name = {klass.__name__: klass for klass in BaseTextMaker.__subclasses__()}
+    klass = classes_by_name.get(string, _classes_by_nickname.get(string, None))
+
+    if klass is None:
+        raise KeyError("could not find text maker class for {!r}".format(string))
+
+    return klass
+
+
 def create_text_maker(
-        input_text=None,
+        input_text=None,  # TODO also support passing in splitter functions & joiner functions
         class_or_nickname="default",
         state_size=constants.DEFAULT_NGRAM_SIZE,):
     """ convenience factory to just "gimme a text maker" without knowing exact module layout. nicknames supported.
+
+    rationale: I *do* want an easy way for callers to make these, but I want to keep the classes minimal -
+    little to no special logic in the constructors.
 
     :param input_text: the input text to load into the TextMaker class. (if not given, you can load it later.)
     :param class_or_nickname: (optional) specific nickname of class to use e.g. 'crude', 'pymc' 'markovify'
         can also just pass in an exact class. if not given, will use the default.
     """
 
-    # SanitizedString avoids redundant sanitization, so it is OK to call redundantly in the module
-    input_text = SanitizedString(input_text)
+    if isinstance(class_or_nickname, basestring):
+        klass = _get_text_maker_class(string=class_or_nickname)
+    else:
+        if callable(class_or_nickname):
+            klass = class_or_nickname
+        else:
+            raise ValueError('{!r} is not callable. please pass a valid class or nickname'.format(class_or_nickname))
 
-    try:
-        # try looking it up as if it is a nickname
-        klass = classes_by_all_names[class_or_nickname]
-    except KeyError:
-        # ah, assume it is the class itself
-        klass = class_or_nickname
-
-    if not callable(klass):
-        raise ValueError('klass={!r} is not callable. please pass a valid class or nickname'.format(klass))
-
+    # TODO(hangwenty) expose other arguments maybe
     text_maker = klass(state_size=state_size)
 
     if input_text:
+        # SanitizedString 'memoizes' to avoid redundant sanitization - so it no problem to call redundantly
+        input_text = SanitizedString(input_text)
         text_maker.input_text(input_text)
 
     return text_maker

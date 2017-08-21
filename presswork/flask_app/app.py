@@ -23,14 +23,12 @@ app = Flask(__name__)
 csrf = CsrfProtect(app=app)
 app.config['SECRET_KEY'] = str(uuid.uuid4())
 
-# template filters are a safe way to convert whitespace to HTML, without turning off escaping
+# template filters are a safer way to convert whitespace to HTML, without turning off escaping
 app.add_template_filter(template_filters.newlines_to_br, name="newlines_to_br")
 app.add_template_filter(template_filters.tabs_to_nbsp, name="tabs_to_nbsp")
 
 
 logger = logging.getLogger('presswork')
-
-_TEXT_MAKER_STRATEGY_NICKNAMES = text_makers.classes_by_nickname.keys()
 
 # TODO handle these upgrades/deprecation warnings
 # presswork/flask_app/app.py:10: ExtDeprecationWarning: Importing flask.ext.wtf is deprecated, use flask_wtf instead.
@@ -62,14 +60,14 @@ class MarkovChainTextMakerForm(Form):
     # XXX really this should be a SelectField but WTForms was being the pain and I want to handle other things first.
     # (while I like the micro-ness of Flask for purposes this, forms are often a pain...)
     strategy = StringField(
-            "Strategy (rarely changed from 'default') (choices: {})".format(
-                    ", ".join(_TEXT_MAKER_STRATEGY_NICKNAMES)),
+            "Strategy (leave this as default, usually) (choices: {})".format(", ".join(text_makers.CLASS_NICKNAMES)),
             validators=[validators.InputRequired(),validators.Length(max=20),],
-            default='default')
+            default=text_makers.DefaultTextMaker.NICKNAME)
 
+    # TODO(hangtwenty) test_app should have a test of this - input 'bogus' and get validationerror on page
     def validate_strategy(form, field):
         strategy = field.data.lower()
-        if strategy not in _TEXT_MAKER_STRATEGY_NICKNAMES:
+        if strategy not in text_makers.CLASS_NICKNAMES:
             raise ValidationError('strategy must be one of: {}'.format(strategy))
 
 
