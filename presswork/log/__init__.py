@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """ boilerplate to set up logging cleanly and avoid redundant setup (which can have unintended side-effects)
 
 note, this module is intentionally not called `logging`, as that can mask stdlib `logging` - at least when
@@ -11,13 +12,13 @@ import yaml
 
 HERE = os.path.abspath(os.path.dirname(__file__))
 
-_PRESSWORK_LOGGING_HAS_BEEN_SET_UP = False
+PRESSWORK_LOGGING_HAS_BEEN_SET_UP = False
 
 def setup_logging(path_to_logging_yaml=os.path.join(HERE, "logging.yaml")):
     """Setup logging configuration
     """
-    global _PRESSWORK_LOGGING_HAS_BEEN_SET_UP
-    if _PRESSWORK_LOGGING_HAS_BEEN_SET_UP:
+    global PRESSWORK_LOGGING_HAS_BEEN_SET_UP
+    if PRESSWORK_LOGGING_HAS_BEEN_SET_UP:
         logger = logging.getLogger('presswork')
         logger.warning('setup_logging() has already been called! short-circuiting and returning with no changes.')
         return logger
@@ -31,6 +32,6 @@ def setup_logging(path_to_logging_yaml=os.path.join(HERE, "logging.yaml")):
 
     logging.config.dictConfig(config)
 
-    _PRESSWORK_LOGGING_HAS_BEEN_SET_UP = True
+    PRESSWORK_LOGGING_HAS_BEEN_SET_UP = True
 
     return logging.getLogger('presswork')

@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """ building blocks for making new sentences+words from generative models; composition is encouraged (pun intended)
 
 -------------------------------------------------------------------------------
@@ -60,7 +61,7 @@ from presswork.sanitize import SanitizedString
 logger = logging.getLogger("presswork")
 
 
-# TODO(hangtwenty) replace with classes, yes this basic type, but also NLTK kinds
+# TODO(hangtwenty) rejoiner aka composer classes... but still keep a convenience-function that's just like "rejoin it the default way" yet
 def rejoin(sentences_of_words, sentence_sep="\n", word_sep=" "):
     return sentence_sep.join(word_sep.join(word for word in sentence) for sentence in sentences_of_words)
 
