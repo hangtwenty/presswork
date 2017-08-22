@@ -14,7 +14,6 @@ import pytest
 
 from . import fixtures
 
-__PRESSWORKLOGGING_HAS_BEEN_SETUP = False
 
 def pytest_runtest_setup(item):
     """ adds to pytest hooks - ensure logging gets set up (helpful when things fail)

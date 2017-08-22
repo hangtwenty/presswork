@@ -14,12 +14,11 @@ Why it's here:
     'Markov Chain Text Generator' impl. It is defiinitely narrowed to the domain.
     - this whole repository is just for fun, this file included
 """
-
-# TODO doctests where it makes sense. (don't forget to add --doctest-modules to tox.ini etc)
-
 import logging
 import pprint
 import random
+
+from presswork.constants import DEFAULT_NGRAM_SIZE
 
 logger = logging.getLogger("presswork")
 
@@ -36,7 +35,6 @@ Sparse is better than dense.
 START_SYMBOL = u""
 END_SYMBOL = u""
 
-DEFAULT_NGRAM_SIZE = 2
 
 
 def _crude_split_sentences(string_of_full_text):

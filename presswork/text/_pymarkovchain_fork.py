@@ -178,7 +178,7 @@ class PyMarkovChainWithNLTK(object):
         return sentences
 
     # TODO(hangtwenty) get rid of these functions that stringify before returning (DEPRECATED...)
-    @DeprecationWarning
+    #@DeprecationWarning
     def make_sentences(self, number):
         sentences = []
         for _ in range(0, number):

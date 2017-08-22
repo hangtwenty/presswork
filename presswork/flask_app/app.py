@@ -97,11 +97,7 @@ def markov():
                 input_text,
                 class_or_nickname=strategy,
                 state_size=state_size,)
-        # TODO, text_made is just lists still, not joined, so I'm joining here...
-        # TODO instead of joining here, should be using common utils, from text.text_makers (see dev_memos/Composer)
-        # TODO allllllllllsooooooooo have to actually do the <br/> etc in the template, or it gets escaped
-        #       and honestly even though this isn't a serious app, I am so allergic to turning autoescape off :sweat_smile:
-        # probably this is what I need, https://gist.github.com/cemk/1324543
+
         text_body = text_makers.rejoin(text_maker.make_sentences(count=count_of_sentences_to_make))
         text_title = text_makers.rejoin(text_maker.make_sentences(count=1))
 
