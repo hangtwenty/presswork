@@ -68,6 +68,7 @@ class EndOfChainException(Exception):
     pass
 
 
+# TODO rename to PyMarkovChainForked
 class PyMarkovChainWithNLTK(object):
     """ A text model and text maker in a single class, with options for local filesystem persistence.
 
@@ -118,6 +119,9 @@ class PyMarkovChainWithNLTK(object):
     def increment_words(self, words):
         self.db[self._special_ngram][words[0]] += 1
 
+    # TODO(hangtwenty) next step in parity tests is to get this to accept list-of-lists with no specific parsing...
+    # i.e. parsing done by caller. then both crude & pymc can be using the same exact sentence-splitter & then the
+    # case that asserts they are deterministic can work...
     def database_init(self, text_input_as_string):
         """ Generate word probability database from raw content string """
         text_input_as_string = \
