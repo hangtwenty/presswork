@@ -34,9 +34,6 @@ Sparse is better than dense.
 # TODO more test cases
 # TODO test cases for different window/state sizes
 
-
-# TODO add skipif( <corpora not downloaded> )
-
 @pytest.fixture         # FIXME parametrize this - do both 'raw' and 'wrapped' PyMarkovChainWithNLTK......
 def pymc(tmpdir):
     db_file_path = os.path.join(str(tmpdir), "presswork_markov_db")

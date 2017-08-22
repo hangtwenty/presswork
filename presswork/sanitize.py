@@ -24,6 +24,8 @@ _char_numbers_besides_newlines = [c for c in _all_control_char_numbers if c not 
 all_control_chars = map(unichr, _all_control_char_numbers)
 control_chars_besides_newlines = map(unichr, _char_numbers_besides_newlines)
 
+# (note, flags=re.UNICODE is *not* required, it doesn't matter if using regex against unicode strings,
+# flag is about the regex itself & control chars are all ASCII. https://docs.python.org/2/library/re.html#re.UNICODE)
 re_control_chars = re.compile('[%s]' % re.escape(''.join(all_control_chars)))
 re_control_chars_besides_newlines = re.compile('[%s]' % re.escape(''.join(control_chars_besides_newlines)))
 
@@ -92,13 +94,14 @@ class SanitizedString(UserString):
         lambda s: remove_control_characters(s, keep_newlines=True),
     )
 
-    def __init__(self, string):
-        if isinstance(string, SanitizedString):
-            self.data = string.data
+    # noinspection PyMissingConstructor
+    def __init__(self, s):
+        if isinstance(s, SanitizedString):
+            self.data = s.data[:]
         else:
             for sanitizer in self.SANITIZERS:
-                string = sanitizer(string)
-            self.data = string
+                s = sanitizer(s)
+            self.data = s
 
     def __unicode__(self):
         return unicode(self.data)

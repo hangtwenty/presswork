@@ -47,7 +47,7 @@ class MarkovChainTextMakerForm(Form):
         ]
     )
 
-    state_size = IntegerField(
+    ngram_size = IntegerField(
         "N-gram size AKA state size AKA window size (increase for more 'rigid' modeling of input text)",
         validators=[validators.NumberRange(min=1, max=6)],
         default=constants.DEFAULT_NGRAM_SIZE, )
@@ -78,26 +78,25 @@ def markov():
     if form.validate_on_submit():
         logger.info(u'[flask] received valid form submission')
 
-        state_size = form.state_size.data
+        ngram_size = form.ngram_size.data
         input_text = SanitizedString(form.text.data)
         strategy = SanitizedString(form.strategy.data)
         count_of_sentences_to_make = form.count_of_sentences_to_make.data
 
         # keep last submission in the text fields (supports 'accumulating' workflow)
         # (you'd  think there'd be a cleaner way - I recall trying the WTForms way and it not working for me)
-        for field_name in ('text', 'state_size', 'count_of_sentences_to_make', 'strategy'):
+        for field_name in ('text', 'ngram_size', 'count_of_sentences_to_make', 'strategy'):
             field = getattr(form, field_name)
             if field.data:
                 field.default = field.data
 
-        logger.info(u'[flask] notable form parameters: state_size={}, count_of_sentences_to_make={} '
-                    u'(input text shown at DEBUG level)'.format(state_size, count_of_sentences_to_make))
+        logger.info(u'[flask] notable form parameters: ngram_size={}, count_of_sentences_to_make={} '
+                    u'(input text shown at DEBUG level)'.format(ngram_size, count_of_sentences_to_make))
 
         text_maker = text_makers.create_text_maker(
                 input_text,
                 class_or_nickname=strategy,
-                state_size=state_size,)
-
+                ngram_size=ngram_size,)
         text_body = text_makers.rejoin(text_maker.make_sentences(count=count_of_sentences_to_make))
         text_title = text_makers.rejoin(text_maker.make_sentences(count=1))
 
