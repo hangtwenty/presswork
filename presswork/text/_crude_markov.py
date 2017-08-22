@@ -20,6 +20,7 @@ import pprint
 import random
 
 from presswork.constants import DEFAULT_NGRAM_SIZE
+from presswork.text.sentences_and_words import crude_split_sentences, crude_split_words
 
 logger = logging.getLogger("presswork")
 
@@ -37,24 +38,11 @@ START_SYMBOL = u""
 END_SYMBOL = u""
 
 
-
-def _crude_split_sentences(string_of_full_text):
-    # ATTN: this function is especially crude. it is only left here as a default/fallback.
-    # Idea is that, in the calling module (text_makers), you can wire in a better splitter. # TODO make it so
-    return tuple(string_of_full_text.splitlines())
-
-
-def _crude_split_words(string_of_sentence):
-    # ATTN: this function is especially crude. it is only left here as a default/fallback.
-    # Idea is that, in the calling module (text_makers), you can wire in a better splitter. # TODO make it so
-    return tuple(string_of_sentence.split())
-
-
 def crude_markov_chain(
         source_text=EXAMPLE_SOURCE,
         ngram_size=DEFAULT_NGRAM_SIZE,
-        fn_to_split_sentences=_crude_split_sentences,
-        fn_to_split_words=_crude_split_words,
+        fn_to_split_sentences=crude_split_sentences,
+        fn_to_split_words=crude_split_words,
 ):
     # FIXME: this should just take list-of-lists (sentences, words) ; caller should do splitting etc.
     # def iter_make_sentences(source_text) :
@@ -76,7 +64,7 @@ def crude_markov_chain(
     if not source_text:
         return model
 
-    for sentence in _crude_split_sentences(source_text):
+    for sentence in crude_split_sentences(source_text):
         words = fn_to_split_words(sentence)
 
         words_with_padding = ngram_for_sentence_start(ngram_size) + words + (END_SYMBOL,)

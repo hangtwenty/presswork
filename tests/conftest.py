@@ -9,6 +9,7 @@ some notes:
         each subdirectory, as needed
 """
 import codecs
+from UserString import UserString
 
 import pytest
 
@@ -27,46 +28,6 @@ def pytest_runtest_setup(item):
     from presswork import log
     if not log.PRESSWORK_LOGGING_HAS_BEEN_SET_UP:
         log.setup_logging()
-
-
-def _read(fn):
-    with codecs.open(fn, 'r', encoding='utf-8') as f:
-        return f.read()
-
-
-@pytest.fixture(params=fixtures.FILENAMES_NEWLINES)
-def text_newlines(request):
-    """ fixture returns 1 string, loaded from appropriate plaintext file (1 at a time/ parametrized)
-
-    newlines ~= "mostly" newlines
-    """
-    filename = request.param
-    return _read(filename)
-
-@pytest.fixture(params=fixtures.FILENAMES_NEWLINES)
-def filename_newlines(request):
-    """ fixture returns 1 filename, loaded from appropriate plaintext file (1 at a time/ parametrized)
-
-    newlines ~= "mostly" newlines
-    """
-    filename = request.param
-    return filename
-
-
-@pytest.fixture(params=fixtures.FILENAMES_PROSE)
-def text_prose(request):
-    """ fixture returns 1 string, loaded from appropriate plaintext file (1 at a time/ parametrized)
-    """
-    filename = request.param
-    return _read(filename)
-
-
-@pytest.fixture(params=fixtures.FILENAMES_MIXED)
-def text_mixed(request):
-    """ fixture returns 1 string, loaded from appropriate plaintext file (1 at a time/ parametrized)
-    """
-    filename = request.param
-    return _read(filename)
 
 
 @pytest.fixture(params=[
@@ -94,3 +55,56 @@ def text_easy_deterministic(request):
     assert len(_words) == len((set(_words)))
 
     return text_no_duplicate_words
+
+
+class StringWithFilename(UserString):
+    """ convenience wrapper that is useful in these fixtures: load string in from filename, and remember filename
+
+    (example where this is relevant - see test_cli.py)
+    """
+
+    def __init__(self, data):
+        super(StringWithFilename, self).__init__(data)
+        self.filename = None  # to be set by caller, or @classmethod
+
+    @classmethod
+    def read_filename(cls, filename, encoding='utf-8'):
+        with codecs.open(filename, 'r', encoding=encoding) as f:
+            result = cls(f.read())
+        result.filename = filename
+        return result
+
+    def __str__(self):
+        return str(self.data)
+
+    def __unicode__(self):
+        return unicode(self.data)
+
+
+@pytest.fixture(params=fixtures.FILENAMES_NEWLINES)
+def text_newlines(request):
+    """ fixture returns 1 string, loaded from appropriate plaintext file (1 at a time/ parametrized)
+
+    newlines ~= "mostly" newlines, actually - not purely
+    """
+    filename = request.param
+    string_with_filename = StringWithFilename.read_filename(filename)
+    return string_with_filename
+
+
+@pytest.fixture(params=fixtures.FILENAMES_PROSE)
+def text_prose(request):
+    """ fixture returns 1 string, loaded from appropriate plaintext file (1 at a time/ parametrized)
+    """
+    filename = request.param
+    string_with_filename = StringWithFilename.read_filename(filename)
+    return string_with_filename
+
+
+@pytest.fixture(params=fixtures.FILENAMES_MIXED)
+def text_mixed(request):
+    """ fixture returns 1 string, loaded from appropriate plaintext file (1 at a time/ parametrized)
+    """
+    filename = request.param
+    string_with_filename = StringWithFilename.read_filename(filename)
+    return string_with_filename

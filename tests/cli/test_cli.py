@@ -2,6 +2,8 @@
 # -*- coding: utf-8 -*-
 """ Tests for presswork CLI
 """
+import codecs
+
 from mock import patch
 import pytest
 
@@ -9,20 +11,28 @@ from click.testing import CliRunner
 
 from presswork import cli
 
+from tests import helpers
+
 
 @pytest.fixture
 def runner():
     return CliRunner()
 
-def test_cli_larger_input_from_file(runner, filename_newlines):
-    result = runner.invoke(cli.main, args=['--input-text', ], catch_exceptions=False)
-    # TODO have this do some kind of sanity check of contents... i.e. tokens in output are subset of tokens in input?
-    assert result.output.strip()
+
+
+def test_cli_larger_input_from_file(runner, text_newlines):
+    result = runner.invoke(cli.main, args=['--input-text', text_newlines.filename], catch_exceptions=False)
+    output_text = result.output.strip()
+    assert output_text
+    assert helpers.output_text_has_subset_of_words_from_input_text(
+            output_text=output_text, input_text=text_newlines)
+
 
 def test_cli_larger_input_from_stdin(runner, text_newlines):
-    result = runner.invoke(cli.main, input=text_newlines, args=['--input-text', '-'], catch_exceptions=False)
-    # TODO have this do some kind of sanity check of contents... i.e. tokens in output are subset of tokens in input?
-    assert result.output.strip()
+    result = runner.invoke(cli.main, input=unicode(text_newlines), args=['--input-text', '-'], catch_exceptions=False)
+    output_text = result.output.strip()
+    assert helpers.output_text_has_subset_of_words_from_input_text(
+            output_text=output_text, input_text=text_newlines)
 
 
 def test_cli_default_strategy(runner):
