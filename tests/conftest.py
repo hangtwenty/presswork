@@ -36,11 +36,22 @@ def _read(fn):
 
 
 @pytest.fixture(params=fixtures.FILENAMES_NEWLINES)
-def text_separated_mostly_by_newlines(request):
+def text_newlines(request):
     """ fixture returns 1 string, loaded from appropriate plaintext file (1 at a time/ parametrized)
+
+    newlines ~= "mostly" newlines
     """
     filename = request.param
     return _read(filename)
+
+@pytest.fixture(params=fixtures.FILENAMES_NEWLINES)
+def filename_newlines(request):
+    """ fixture returns 1 filename, loaded from appropriate plaintext file (1 at a time/ parametrized)
+
+    newlines ~= "mostly" newlines
+    """
+    filename = request.param
+    return filename
 
 
 @pytest.fixture(params=fixtures.FILENAMES_PROSE)
@@ -52,7 +63,7 @@ def text_prose(request):
 
 
 @pytest.fixture(params=fixtures.FILENAMES_MIXED)
-def text_mixed_prose_and_newlines(request):
+def text_mixed(request):
     """ fixture returns 1 string, loaded from appropriate plaintext file (1 at a time/ parametrized)
     """
     filename = request.param

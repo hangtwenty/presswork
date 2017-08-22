@@ -14,10 +14,14 @@ from presswork import cli
 def runner():
     return CliRunner()
 
-# FIXME(mfloering) this should be using fixtures
-def test_cli_input_from_file(runner):
-    result = runner.invoke(cli.main, args=['--input-text', '/tmp/FIXME_TMP_TEST.txt'], catch_exceptions=False)
-    assert "2015Enhancing" not in result.output
+def test_cli_larger_input_from_file(runner, filename_newlines):
+    result = runner.invoke(cli.main, args=['--input-text', ], catch_exceptions=False)
+    # TODO have this do some kind of sanity check of contents... i.e. tokens in output are subset of tokens in input?
+    assert result.output.strip()
+
+def test_cli_larger_input_from_stdin(runner, text_newlines):
+    result = runner.invoke(cli.main, input=text_newlines, args=['--input-text', '-'], catch_exceptions=False)
+    # TODO have this do some kind of sanity check of contents... i.e. tokens in output are subset of tokens in input?
     assert result.output.strip()
 
 

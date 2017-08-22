@@ -13,7 +13,7 @@ def get_abs_path_to_files_in_subfolder(subfolder, parent_folder=os.path.join(HER
     basenames = os.listdir(os.path.join(parent_folder, subfolder))
     if not basenames:
         raise IOError("expected 1+ plaintext files in {}/{}".format(parent_folder, subfolder))
-    return [os.path.join(parent_folder, basename) for basename in basenames]
+    return [os.path.join(parent_folder, subfolder, basename) for basename in basenames]
 
 
 FILENAMES_NEWLINES = get_abs_path_to_files_in_subfolder('newlines')
