@@ -71,7 +71,7 @@ dist: clean ## builds source and wheel package
 	python setup.py bdist_wheel
 	ls -l dist
 
-install: clean ## install the package to the active Python's site-packages
-    pip install --upgrade pip
-    pip install .
+install: clean ## install the package to the active Python's site-packages (and install NLTK)
+	pip install --upgrade pip
+	pip install .
 	python setup.py install_with_nltk_corpora

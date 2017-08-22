@@ -5,25 +5,38 @@ import sys
 
 import click
 
-from presswork.logging import setup_logging
+from presswork import constants
+from presswork.log import setup_logging
+from presswork.sanitize import SanitizedString
+from presswork.text import text_makers
 
 
 @click.command()
+@click.option('-i', '--input-text',
+              help="input text to train the markov chain. by default it is expected you will pipe things in on stdin. "
+                   "if you do not use stdin, you can specify a valid filepath to read from.",
+              default='-')
+@click.option('-c', '--count',
+              type=int,
+              help="count of sentences to generate.",
+              default=100,
+              show_default=True)
+@click.option('-n', '--ngram-size',
+              type=int,
+              help="how many tokens per n-gram in the model. AKA 'state size' or 'window size'. "
+                   "for details, see README, docstrings in code, etc.)",
+              default=constants.DEFAULT_NGRAM_SIZE,
+              show_default=True)
 @click.option('-s', '--strategy',
-              # type=click.Choice(['pymc', 'crude']), # TODO add pymc
-              type=click.Choice(['crude']),
+              type=click.Choice(['pymc', 'crude']),
               help="which implementation/strategy to use for markov chain text generation. "
                    "'markovify' is the most performant and best for most purposes. "
                    "'pymc' is based on PyMarkovChain. "
                    "'crude' is crude and limited. ",
               default="crude")
-@click.option('-i', '--input-text',
-              help="input text to train the markov chain. by default it is expected you will pipe things in on stdin. "
-                   "if you do not use stdin, you can specify a valid filepath to read from.",
-              default='-')
 @click.option('-e', '--input-encoding', help="encoding of the input text.", default='utf-8', show_default=True)
 @click.option('-E', '--output-encoding', help="encoding of the output text.", default='utf-8', show_default=True)
-def main(strategy, input_text, input_encoding, output_encoding):
+def main(strategy, ngram_size, input_text, count, input_encoding, output_encoding):
     logger = setup_logging()
 
     if input_text == '-':
@@ -34,18 +47,15 @@ def main(strategy, input_text, input_encoding, output_encoding):
         with codecs.open(input_text, 'r', encoding=input_encoding) as f:
             input_text = f.read()
 
-    if strategy == 'crude':
-        # TODO refactor such that this is behind a TextMaker class
-        from presswork.text_maker._crude import crude_markov_chain, make_text
-        result = make_text(model=crude_markov_chain(source_text=input_text))
-    else:
-        # on CLI, Click catches before we even get here, but might as well raise.
-        raise ValueError('unknown strategy')
+    text_maker = text_makers.create_text_maker(
+            input_text=SanitizedString(input_text),
+            class_or_nickname=strategy,
+            state_size=ngram_size)
 
-    # TODO add pymc
-    # elif strategy == "pymc":
-    #     from presswork.text_maker.text_maker import TextMakerPyMarkovChain
-    #     text_maker = TextMakerPyMarkovChain()
+    # TODO over here we shouldn't know about sentences and joining. when text maker has a make_text method, switch to that
+    sentences = text_maker.make_sentences(count)
+    logger.debug('sentences=' + str(sentences))
+    result = text_makers.rejoin(sentences)
 
     UTF8Writer = codecs.getwriter(output_encoding)
     sys.stdout = UTF8Writer(sys.stdout)
