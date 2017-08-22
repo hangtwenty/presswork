@@ -79,23 +79,23 @@ class BaseTextMaker(object):
 
     Q:  Why lock after input_text is called?
     A:  trying to keep things easy, but safe. With 1+ backends, calling input_text() repeatedly may not
-        achieve desired results. additionally, changing state_size after calling input_text() could cause astonishment.
+        achieve desired results. additionally, changing ngram_size after calling input_text() could cause astonishment.
         Instead of allowing for some and denying for others, we just keep it consistent.
 
     See also: overall design notes at the header of the module, which covers TextMakers as well as collaborators.
     (Won't re-hash those notes here.)
     """
 
-    DEFAULT_STATE_SIZE = constants.DEFAULT_NGRAM_SIZE
+    DEFAULT_NGRAM_SIZE = constants.DEFAULT_NGRAM_SIZE
 
-    # TODO rename state_size to ngram_size; that is more 'high level' than being specific to markov's lower level detail of dealing with n 'states'...
-    def __init__(self, state_size=DEFAULT_STATE_SIZE):
+    # TODO rename ngram_size to ngram_size; that is more 'high level' than being specific to markov's lower level detail of dealing with n 'states'...
+    def __init__(self, ngram_size=DEFAULT_NGRAM_SIZE):
         """
-        :param state_size: state size AKA window size AKA N-gram size. how many tokens (e.g. words) per 'prefix'; or,
+        :param ngram_size: state size AKA window size AKA N-gram size. how many tokens (e.g. words) per 'prefix'; or,
             the 'N' in 'N-gram'. this needs to be known both at the generate/load of the model (i.e. markov chain),
             and at the text generation time (and they need to match).
         """
-        self._state_size = state_size
+        self._ngram_size = ngram_size
         self._locked = False
 
     def clone(self, ):
@@ -103,7 +103,7 @@ class BaseTextMaker(object):
             raise TextMakerIsLockedException('instance is locked! copying might be ago, aborting for max safety')
 
         # TODO(hangtwenty) ensure this does all relevant params from constructor
-        return self.__class__(state_size=self.state_size)
+        return self.__class__(ngram_size=self.ngram_size)
 
     def _lock(self):
         """ lock upon first input_text call, to avoid changing things after loading input text for the first time
@@ -117,22 +117,22 @@ class BaseTextMaker(object):
         return self._locked
 
     @property
-    def state_size(self):
-        return self._state_size
+    def ngram_size(self):
+        return self._ngram_size
 
-    @state_size.setter
-    def state_size(self, value):
-        """ refuses to change state_size property if the TextMaker has been locked
+    @ngram_size.setter
+    def ngram_size(self, value):
+        """ refuses to change ngram_size property if the TextMaker has been locked
         """
         if self.is_locked:
             raise TextMakerIsLockedException(
-                    "locked! state_size cannot be changed after locking (such as after loading input text), "
-                    "to avoid unintended mixing of state_size values")
-        self._state_size = value
+                    "locked! ngram_size cannot be changed after locking (such as after loading input text), "
+                    "to avoid unintended mixing of ngram_size values")
+        self._ngram_size = value
 
     def __repr__(self):
         # TODO ensure all params are in this repr()
-        return "{}(state_size={})".format(self.__class__.__name__, self.state_size)
+        return "{}(ngram_size={})".format(self.__class__.__name__, self.ngram_size)
 
     def _input_text(self, string):
         """ build a fresh model from this input text. PRIVATE but has real implementation. see also `input_text()
@@ -164,7 +164,7 @@ class TextMakerPyMarkovChain(BaseTextMaker):
         self.strategy = _pymarkovchain_fork.PyMarkovChainWithNLTK(
                 # avoid surprising side effects: force clean slate. (see module docstring for rationale.)
                 db_file_path=None,
-                window=self.state_size)
+                window=self.ngram_size)
         assert isinstance(self.strategy, _pymarkovchain_fork.PyMarkovChainWithNLTK), "PyCharm type hint"
 
     def _input_text(self, string):
@@ -189,11 +189,11 @@ class TextMakerCrude(BaseTextMaker):
         self._model = {}
 
     def _input_text(self, string):
-        self._model = self.strategy.crude_markov_chain(source_text=string, ngram_size=self.state_size)
+        self._model = self.strategy.crude_markov_chain(source_text=string, ngram_size=self.ngram_size)
 
     def make_sentences(self, count):
         iter_sentences_of_words = self.strategy.iter_make_sentences(
-                crude_markov_model=self._model, ngram_size=self.state_size, count_of_sentences_to_generate=count)
+                crude_markov_model=self._model, ngram_size=self.ngram_size, count_of_sentences_to_generate=count)
         return list(iter_sentences_of_words)
 
 
@@ -223,7 +223,7 @@ def _get_text_maker_class(string):
 def create_text_maker(
         input_text=None,  # TODO also support passing in splitter functions & joiner functions
         class_or_nickname="default",
-        state_size=constants.DEFAULT_NGRAM_SIZE,):
+        ngram_size=constants.DEFAULT_NGRAM_SIZE,):
     """ convenience factory to just "gimme a text maker" without knowing exact module layout. nicknames supported.
 
     rationale: I *do* want an easy way for callers to make these, but I want to keep the classes minimal -
@@ -243,7 +243,7 @@ def create_text_maker(
             raise ValueError('{!r} is not callable. please pass a valid class or nickname'.format(class_or_nickname))
 
     # TODO(hangwenty) expose other arguments maybe
-    text_maker = klass(state_size=state_size)
+    text_maker = klass(ngram_size=ngram_size)
 
     if input_text:
         # SanitizedString 'memoizes' to avoid redundant sanitization - so it no problem to call redundantly

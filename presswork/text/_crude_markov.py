@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """ Very basic homegrown implementation for fun & reference purposes.
 
 The implementations in `thirdparty` are preferable for actual usage, outside of development and play purposes.

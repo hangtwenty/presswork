@@ -50,7 +50,7 @@ def main(strategy, ngram_size, input_text, count, input_encoding, output_encodin
     text_maker = text_makers.create_text_maker(
             input_text=SanitizedString(input_text),
             class_or_nickname=strategy,
-            state_size=ngram_size)
+            ngram_size=ngram_size)
 
     # TODO over here we shouldn't know about sentences and joining. when text maker has a make_text method, switch to that
     sentences = text_maker.make_sentences(count)
