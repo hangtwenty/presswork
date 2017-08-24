@@ -32,15 +32,18 @@ _requirements_server = [
 # these could all be split up, but really purpose of 'Presswork' is to bring a couple of things together into an
 # instant-gratification sandbox. so, a compromise: just make things clear-cut, even though I'm 'bundling' them.
 requirements = _requirements_cli + _requirements_server + [
-    'regex==2015.3.18',  # TODO maybe stop using this dependency and switch to stdlib `re`.
-
     'PyYAML',
 
-    # depend on BeautifulSoup4 mainly for the marvellous UnicodeDammit utility.
+    # Third party markov chain text generators
+    # (No need to include PyMarkovChain here, is forked and inlined into this repository - PyMarkovChainFork)
+    "markovify==0.6.0",
+
+    # Want those lovely NLTK tokenizers!
+    'nltk==' + NLTK_VERSION,
+
+    # Depend on BeautifulSoup4 mainly for the marvellous UnicodeDammit utility.
     # (would be nice if we could depend on JUST that, but that's not published on its own.)
     'beautifulsoup4==4.6.0',  # bs4.UnicodeDammit
-
-    'nltk==' + NLTK_VERSION,
 ]
 
 setup_requirements = [

@@ -44,6 +44,7 @@ def all_text_makers(request):
     grammar.SentenceTokenizerPunkt(word_tokenizer=grammar.WordTokenizerTreebank()),
     grammar.SentenceTokenizerPunkt(word_tokenizer=grammar.WordTokenizerWhitespace()),
     grammar.SentenceTokenizerWhitespace(word_tokenizer=grammar.WordTokenizerTreebank()),
+    grammar.SentenceTokenizerMarkovify(word_tokenizer=grammar.WordTokenizerWhitespace()),
 ])
 def test_essential_properties_of_text_making(each_text_maker, ngram_size, sentence_tokenizer, text_any):
     """ confirm some essential known properties of text-making output, common to all the text makers

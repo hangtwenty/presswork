@@ -120,8 +120,10 @@ class BaseTextMaker(object):
         * each subclass implements _input_tokenized(), private, implements the strategy. (may just adapt/forward)
         implements the *common* parts (not specific to subclasses)
 
-        :return: returns the tokenized text (that was tokenzed with self._sentence_tokenizer). mainly this is
-            useful for testing, debugging, etc. this is
+        main effect is to change the state of the instance. the instance stores the strategy, the strategy
+         stores the markov chain model it learns from the input text.
+
+        :return: (optional) also returns the tokenized input text; this is mainly relevant for testing purposes
         """
         if self.is_locked:
             raise TextMakerIsLockedException("locked! has input_text() already been called? (can only be called once)")
@@ -179,10 +181,34 @@ class BaseTextMaker(object):
                 self.__class__.__name__, self.ngram_size, self._sentence_tokenizer)
 
 
-class TextMakerPyMarkovChain(BaseTextMaker):
-    """ text maker with implementation by PyMarkovChain[WithNLTK], pretty well-behaved but no performance tuning
+class TextMakerMarkovify(BaseTextMaker):
+    """ text maker using `markovify` lib (behind an adapter). this is the first strategy to reach for!
+    """
+    NICKNAME = 'markovify'
 
-    For most usages, this is preferable to 'crude'; but 'markovify' is the most preferable.
+    def __init__(self, *args, **kwargs):
+        super(TextMakerMarkovify, self).__init__(*args, **kwargs)
+        # This is a bit odd, but the way Markovify is, we can't initialize cleanly until we really want to load things
+        self.strategy = None
+
+    def _input_text(self, sentences_as_word_lists):
+        # markovify is strict about its input being exactly `list` of `list` (duck typing not allowed), so we convert.
+        if hasattr(sentences_as_word_lists, 'unwrap'):
+            sentences_as_word_lists = sentences_as_word_lists.unwrap()
+
+        self.strategy = thirdparty._markovify.MarkovifyLite(
+                state_size=constants.DEFAULT_NGRAM_SIZE,
+                parsed_sentences=sentences_as_word_lists)
+
+    def make_sentences(self, count):
+        sentences = []
+        for i in xrange(0, count):
+            sentences.append(self.strategy.make_sentence())
+        return grammar.SentencesAsWordLists(sentences)
+
+
+class TextMakerPyMarkovChain(BaseTextMaker):
+    """ text maker using `PyMarkovChainFork` strategy. less performant than markovify, but plays nice with unicode
     """
     NICKNAME = 'pymc'
 
@@ -202,10 +228,9 @@ class TextMakerPyMarkovChain(BaseTextMaker):
 
 
 class TextMakerCrude(BaseTextMaker):
-    """ text maker using 'crude' implementation, which is homegrown and indeed, crude.
+    """ text maker using homegrown 'crude' implementation
 
-    For most usages, the other strategies should be preferred. (rationale for keeping is explained in _crude_markov,
-    module docstring, etc. - but in short, it has to do with how this is just a repository for playing around.)
+    For most usages, the other strategies should be preferred. (why keep it around? see _crude_markov module header.)
     """
     NICKNAME = 'crude'
 
@@ -258,7 +283,7 @@ def create_text_maker(
     :param class_or_nickname: (optional) specific nickname of class to use e.g. 'crude', 'pymc' 'markovify'
         can also just pass in an exact class. if not given, will use the default.
     :param sentence_tokenizer_nickname_or_instance: i.e. 'nltk', 'whitespace', or specific customized instance.
-        if not given, does not override; TextMaker class decides.
+        if not given, does not override, and the TextMaker class will use its default.
     """
 
     if isinstance(class_or_nickname, basestring):

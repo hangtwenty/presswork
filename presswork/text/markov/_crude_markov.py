@@ -31,9 +31,12 @@ END_SYMBOL = u""
 
 def crude_markov_chain(sentences_as_word_lists, ngram_size=constants.DEFAULT_NGRAM_SIZE, ):
     """ Build a Markov Chain model of sentences, words. Bare-essentials/crude implementation
-    :param sentences_as_word_lists:
-    :param ngram_size:
-    :return:
+    :param sentences_as_word_lists: list of lists of words/tokens. i.e. expects already-tokenized text.
+        [ [word, word, ...], [word, word, ...], ... ].
+    :param ngram_size: the N in N-gram, AKA state size or window size. same as in general markov chains.
+        2 or 3 are commonly used for text generation. higher than that can
+    :return: a dict: { n-gram : [ possibility, possibility ...], ... }. Feed this to iter_make_sentences
+        can be serialized to JSON, if you want to save a model for re-use.
     """
     model = {}
 

@@ -89,15 +89,14 @@ def test_cli_choose_strategy(runner):
 
     # negative case as sanity check - if invalid strategy the method would NOT be called
     with patch(target="presswork.text.text_makers.TextMakerPyMarkovChain.input_text") as mock:
-        result = runner.invoke(cli.main, input=stdin, args=["--strategy", "unknown"], catch_exceptions=True)
+        runner.invoke(cli.main, input=stdin, args=["--strategy", "unknown"], catch_exceptions=True)
         assert not mock.called
 
-    # # TODO when I add markovify strategy, enable this
-    # # another positive case
-    # with patch(target="presswork.text.text_makers.TextMakerMarkovify.input_text") as mock:
-    #     result = runner.invoke(cli.main, input=stdin, args=["--strategy", "markovify"], catch_exceptions=False)
-    #     assert result.exit_code == 0
-    #     assert mock.called
+    with patch(target="presswork.text.text_makers.TextMakerMarkovify.input_text") as mock:
+        result = runner.invoke(cli.main, input=stdin, args=["--strategy", "markovify"], catch_exceptions=False)
+        assert result.exit_code == 0
+        assert mock.called
+
 
 @pytest.mark.parametrize("stdin", [
     "",
