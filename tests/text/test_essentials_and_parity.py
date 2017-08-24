@@ -167,8 +167,3 @@ def test_avoid_pollution_between_instances(each_text_maker):
 
     assert 'Input' in str(text_maker_2.make_sentences(10))
     assert 'Input' not in str(text_maker_1.make_sentences(10))
-
-
-
-
-

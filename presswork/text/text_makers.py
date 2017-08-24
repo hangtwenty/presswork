@@ -55,9 +55,8 @@ import logging
 
 from presswork import constants
 from presswork.sanitize import SanitizedString
-from presswork.text import _crude_markov
 from presswork.text import grammar
-from presswork.text import thirdparty
+from presswork.text.markov import thirdparty, _crude_markov
 
 logger = logging.getLogger("presswork")
 
