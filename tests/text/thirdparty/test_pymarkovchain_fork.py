@@ -11,6 +11,7 @@ from collections import namedtuple
 import pytest
 
 from presswork.text import grammar
+from presswork.text.grammar import rejoin
 from presswork.text.markov.thirdparty._pymarkovchain import PyMarkovChainForked
 
 SentencesTestCase = namedtuple('SentencesTestCase', ['text', 'phrase_in_each_sentence'])
@@ -19,8 +20,8 @@ SentencesTestCase = namedtuple('SentencesTestCase', ['text', 'phrase_in_each_sen
 # so there is no confusion about what "type" it is in conftest vs the usage, it can just be used like a string,
 # but it does have metadata of .phrase_in_each_sentence, that can be used in asserts.
 TEST_CASE_ZEN_OF_PYTHON = SentencesTestCase(
-    phrase_in_each_sentence="better than",
-    text="""
+        phrase_in_each_sentence="better than",
+        text="""
 Beautiful is better than ugly.
 Explicit is better than implicit.
 Simple is better than complex.
@@ -30,16 +31,14 @@ Sparse is better than dense.
 """)
 
 
-# TODO more test cases
-# TODO test cases for different window/state sizes
-
-@pytest.fixture         # FIXME parametrize this - do both 'raw' and 'wrapped' PyMarkovChainForked......
+@pytest.fixture
 def pymc(tmpdir):
+    # note, even though this is using db file, it's using pytest `tmpdir`, so each run gets its own (shouldn't pollute)
     db_file_path = os.path.join(str(tmpdir), "presswork_markov_db")  # TODO get rid of db stuff
-    pymc = PyMarkovChainForked.with_persistence(db_file_path)
-    pymc._sentence_tokenizer = grammar.SentenceTokenizerWhitespace()
+    pymc = PyMarkovChainForked(db_file_path=db_file_path)
     return pymc
 
+tokenize = grammar.SentenceTokenizerWhitespace()
 
 @pytest.mark.parametrize(('test_case'), [TEST_CASE_ZEN_OF_PYTHON])
 def test_high_level_behavior(pymc, test_case):
@@ -48,20 +47,19 @@ def test_high_level_behavior(pymc, test_case):
     Text generation with Markov Chains is not deterministic (that's the fun part!)
     so by taking an assumption we can do a test
         assumption: each sentence input has some 2-gram that is the same (i.e. "better than")
-        then: even though chance is involved, "better than" appears in each output
+        then: even though chance is involved, the 2-gram appears in each output ("better than" in each sentence)
 
     We also check that each of the "words" (very naively defined) in the output is in the
     original input.
     """
     _sentences = test_case.text.strip().splitlines()
     assert all(test_case.phrase_in_each_sentence in sentence for sentence in _sentences), \
-        ("SentencesTestCase sanity check failed: "
-         "a SentencesTestCase should have some phrase in each sentence (line)!")
+        ("sanity check of test validity failed. expected each sentence in this test case to have a common phrase")
 
-    pymc.database_init(test_case.text)
+    pymc.database_init(tokenize(test_case.text))
 
     for x in range(0, len(_sentences) * 3):
-        output_text = pymc.make_sentence()
+        output_text = rejoin(pymc.make_sentences_list(1))
         print output_text
         assert test_case.phrase_in_each_sentence in output_text
 
@@ -69,29 +67,23 @@ def test_high_level_behavior(pymc, test_case):
             assert word in test_case.text
 
 
-def test_post_process():
-    res = PyMarkovChainForked.post_process(
-        'foo . bar test : ,! baz ! hi yepyep: blah ; hi')
-    assert res == "foo. bar test: ,! baz! hi yepyep: blah; hi"
-
-
 @pytest.mark.parametrize(('test_case'), [TEST_CASE_ZEN_OF_PYTHON])
 def test_database_persistence(pymc, test_case):
-    assert test_case.phrase_in_each_sentence not in pymc.make_sentence()
-    pymc.database_init(test_case.text)
-    assert test_case.phrase_in_each_sentence in pymc.make_sentence()
+    assert test_case.phrase_in_each_sentence not in rejoin(pymc.make_sentences_list(1))
+    pymc.database_init(tokenize(test_case.text))
+    assert test_case.phrase_in_each_sentence in rejoin(pymc.make_sentences_list(1))
     pymc.database_dump()
     pymc.database_clear()
-    pymc.database_init(test_case.text)
-    assert test_case.phrase_in_each_sentence in pymc.make_sentence()
+    pymc.database_init(tokenize(test_case.text))
+    assert test_case.phrase_in_each_sentence in rejoin(pymc.make_sentences_list(1))
 
     # dump DB, use another instance to load DB...
     pymc.database_dump()
     # we dumped the DB so another instance w/ same db_file_path argument should behave same.
-    text_maker_2 = PyMarkovChainForked.with_persistence(pymc.db_file_path)
+    text_maker_2 = PyMarkovChainForked(db_file_path=pymc.db_file_path)
     # notice we do not call `database_init` - that doesn't need to happen
-    assert test_case.phrase_in_each_sentence in text_maker_2.make_sentence()
+    assert test_case.phrase_in_each_sentence in rejoin(text_maker_2.make_sentences_list(1))
 
     pymc.database_clear()
     # even though we just deleted the db file, db is still in memory...
-    assert test_case.phrase_in_each_sentence in pymc.make_sentence()
+    assert test_case.phrase_in_each_sentence in rejoin(pymc.make_sentences_list(1))

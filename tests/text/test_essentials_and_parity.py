@@ -113,7 +113,7 @@ def _test_self_ensure_test_would_fail_if_comparison_was_invalid(generated_tokens
     this should fail, confirming test would fail if something was off.
     """
     invalid_word_set_comparison = helpers.WordSetComparison(
-            generated_tokens=generated_tokens + ["XXXXXXXXXXXX_Not_In_Input" * 20],
+            generated_tokens=generated_tokens + ["XXXXXXXXX_This_Token_Is_Not_In_Any_Input_Text_XXXXXXXXX"],
             input_tokenized=input_tokenized,
             quiet=True)
     assert not invalid_word_set_comparison.output_is_subset_of_input

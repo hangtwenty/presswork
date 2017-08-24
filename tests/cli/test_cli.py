@@ -21,8 +21,7 @@ from tests import helpers
 def runner():
     return CliRunner()
 
-
-def test_cli_larger_input_from_file(runner, text_newlines):
+def test_cli_large_input_from_file(runner, text_newlines):
     """ take in text fixture(s)... should be able to gobble up books no issue. from files by filename
     """
     input_filename = text_newlines.filename
@@ -43,7 +42,7 @@ def test_cli_larger_input_from_file(runner, text_newlines):
     assert word_set_comparison.output_is_subset_of_input
 
 
-def test_cli_larger_input_from_stdin(runner, text_newlines):
+def test_cli_large_input_from_stdin(runner, text_newlines):
     """ take in text fixture(s)... should be able to gobble up books no issue. from stdin
     """
 
