@@ -61,10 +61,10 @@ from presswork.text.markov import thirdparty, _crude_markov
 logger = logging.getLogger("presswork")
 
 
-
 class TextMakerIsLockedException(ValueError):
     """ raise when someone tries to mutate TextMaker input text/state size/ etc after it is already loaded & locked
     """
+
 
 class BaseTextMaker(object):
     """ common-denominator interface for making text from a generative model - so far, from markov chain models
@@ -104,6 +104,13 @@ class BaseTextMaker(object):
         self._locked = False
 
     def make_sentences(self, count):
+        """ Do the thing! After TextMaker has been trained from input_text(), we can generate new sentences from it.
+
+        :param count: How many sentences to generate
+        :return: Sentences! Structured as a list of word-lists (list of token-lists).
+            (Fun fact: The `set()` of tokens generated, will be a subset of the tokens from the input.)
+        :rtype: grammar.SentencesAsWordLists
+        """
         return NotImplementedError()
 
     def input_text(self, input_text):
@@ -161,7 +168,7 @@ class BaseTextMaker(object):
         return self._locked
 
     def clone(self):
-        """ create a new instance with the same constructor arguments. (helps with a test case, if nothing else)
+        """ create a new instance with the same constructor arguments. (helps with a test, if nothing else)
         """
         if self.is_locked:
             raise TextMakerIsLockedException('instance is locked! copying might be unsafe, aborting for max safety')
@@ -170,7 +177,6 @@ class BaseTextMaker(object):
     def __repr__(self):
         return "{}(ngram_size={!r}, sentence_tokenizer={!r})".format(
                 self.__class__.__name__, self.ngram_size, self._sentence_tokenizer)
-
 
 
 class TextMakerPyMarkovChain(BaseTextMaker):
@@ -183,11 +189,9 @@ class TextMakerPyMarkovChain(BaseTextMaker):
     def __init__(self, *args, **kwargs):
         super(TextMakerPyMarkovChain, self).__init__(*args, **kwargs)
         self.strategy = thirdparty._pymarkovchain.PyMarkovChainForked(
-            window=self.ngram_size,
-            sentence_tokenizer=self._sentence_tokenizer,
-            # avoid surprising side effects: force clean slate. (see module docstring for rationale.)
-            db_file_path=None,
-        )
+                window=self.ngram_size,
+                # avoid surprising side effects: force clean slate. (see module docstring for rationale.)
+                db_file_path=None)
 
     def _input_text(self, sentences_as_word_lists):
         self.strategy.database_init(sentences_as_word_lists)
@@ -224,7 +228,7 @@ class TextMakerCrude(BaseTextMaker):
 
 _classes_by_nickname = {klass.NICKNAME: klass for klass in BaseTextMaker.__subclasses__()}
 CLASS_NICKNAMES = _classes_by_nickname.keys()
-DEFAULT_TEXT_MAKER_NICKNAME = "crude" # TODO change the default to markovify
+DEFAULT_TEXT_MAKER_NICKNAME = "crude"  # TODO change the default to markovify
 
 
 def _get_text_maker_class(name_or_nickname):
@@ -244,7 +248,7 @@ def create_text_maker(
         class_or_nickname=DEFAULT_TEXT_MAKER_NICKNAME,
         sentence_tokenizer_nickname_or_instance=None,
         input_text=None,
-        ngram_size=constants.DEFAULT_NGRAM_SIZE,):
+        ngram_size=constants.DEFAULT_NGRAM_SIZE, ):
     """ convenience factory to just "gimme a text maker" without knowing exact module layout. nicknames supported.
 
     rationale: I *do* want an easy way for callers to make these, but I want to keep the classes minimal -
