@@ -8,9 +8,6 @@ some notes:
         - the plaintext ones are set up to start with 1+ of each type, but we can add more just by adding a file to
         each subdirectory, as needed
 """
-import codecs
-from UserString import UserString
-
 import pytest
 
 from . import fixtures
@@ -57,28 +54,39 @@ def text_easy_deterministic(request):
     return text_no_duplicate_words
 
 
-class StringWithFilename(UserString):
-    """ convenience wrapper that is useful in these fixtures: load string in from filename, and remember filename
+class StrFromFilename(str):
+    """ it's str() but it can have a filename attached. helps for fixtures; see example usage in test_cli.py
+
+    *INTENTIONALLY* is str not unicode, as we want to leave it "raw" until our own code-under-test processes it.
+    also, found that subclassing UserString was not a good fit - unrelated reason though: Click library's test helpers
+    choked on it.
+
+    (additionally it is not UserString because when it was UserString, something like Click CliRunner etc was
+    rejecting it based on strict type-checking.)
 
     (example where this is relevant - see test_cli.py)
     """
 
-    def __init__(self, data):
-        super(StringWithFilename, self).__init__(data)
-        self.filename = None  # to be set by caller, or @classmethod
+    def __new__(cls, string):
+        instance = super(StrFromFilename, cls).__new__(cls, string)
+        instance.filename = None
+        return instance
 
     @classmethod
-    def read_filename(cls, filename, encoding='utf-8'):
-        with codecs.open(filename, 'r', encoding=encoding) as f:
-            result = cls(f.read())
-        result.filename = filename
-        return result
+    def load_from_filename(cls, filename):
+        # attn: do *not* specify encoding here, we want to read it raw & pass it to code-under-test raw.
+        with open(filename, 'r') as f:
+            instance = cls(f.read())
+        instance.filename = filename
+        return instance
 
-    def __str__(self):
-        return str(self.data)
 
-    def __unicode__(self):
-        return unicode(self.data)
+@pytest.fixture(params=fixtures.FILENAMES_NEWLINES)
+def text_any(request):
+    """ fixture returns 1 string, loaded from *any* of the plaintext file filxtures (1 at a time/ parametrized)
+    """
+    filename = request.param
+    return StrFromFilename.load_from_filename(filename)
 
 
 @pytest.fixture(params=fixtures.FILENAMES_NEWLINES)
@@ -88,8 +96,7 @@ def text_newlines(request):
     newlines ~= "mostly" newlines, actually - not purely
     """
     filename = request.param
-    string_with_filename = StringWithFilename.read_filename(filename)
-    return string_with_filename
+    return StrFromFilename.load_from_filename(filename)
 
 
 @pytest.fixture(params=fixtures.FILENAMES_PROSE)
@@ -97,8 +104,7 @@ def text_prose(request):
     """ fixture returns 1 string, loaded from appropriate plaintext file (1 at a time/ parametrized)
     """
     filename = request.param
-    string_with_filename = StringWithFilename.read_filename(filename)
-    return string_with_filename
+    return StrFromFilename.load_from_filename(filename)
 
 
 @pytest.fixture(params=fixtures.FILENAMES_MIXED)
@@ -106,5 +112,4 @@ def text_mixed(request):
     """ fixture returns 1 string, loaded from appropriate plaintext file (1 at a time/ parametrized)
     """
     filename = request.param
-    string_with_filename = StringWithFilename.read_filename(filename)
-    return string_with_filename
+    return StrFromFilename.load_from_filename(filename)

@@ -36,6 +36,10 @@ requirements = _requirements_cli + _requirements_server + [
 
     'PyYAML',
 
+    # depend on BeautifulSoup4 mainly for the marvellous UnicodeDammit utility.
+    # (would be nice if we could depend on JUST that, but that's not published on its own.)
+    'beautifulsoup4==4.6.0',  # bs4.UnicodeDammit
+
     'nltk==' + NLTK_VERSION,
 ]
 

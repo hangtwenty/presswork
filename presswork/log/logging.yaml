@@ -17,8 +17,8 @@ handlers:
         formatter: verbose
         level: DEBUG
         filename: /tmp/presswork.debug.log
-        maxBytes: 10485760
-        backupCount: 3
+        maxBytes: 52428800  # 50MB
+        backupCount: 2
         encoding: utf8
     file_info:
         class: logging.handlers.RotatingFileHandler
@@ -26,7 +26,7 @@ handlers:
         level: INFO
         filename: /tmp/presswork.info.log
         maxBytes: 10485760
-        backupCount: 3
+        backupCount: 2
         encoding: utf8
     file_error:
         class: logging.handlers.RotatingFileHandler
@@ -34,16 +34,16 @@ handlers:
         level: ERROR
         filename: /tmp/presswork.error.log
         maxBytes: 10485760
-        backupCount: 3
+        backupCount: 2
         encoding: utf8
 
 root:
-    level: "DEBUG" # DEBUG and above
+    level: "INFO"
     handlers: [console, file_info, file_error, file_debug]
 
 loggers:
     presswork:
-        level: "DEBUG" # DEBUG and above
+        level: "INFO"
         handlers: [console, file_info, file_error, file_debug]
         propagate: False
 

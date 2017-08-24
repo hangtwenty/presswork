@@ -1,24 +1,23 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
+""" tests directly against PyMarkovChainFork class (as opposed to the PyMarkovChainTextMaker class, which is preferable)
 
-# TODO meld this into test_parity, and then it will get refactored later.
-
+just a couple because of forking the lib. want to give it smoketests on its own, aside from other
+tests related to TextMaker variants. (if something went wrong, it would help pinpoint.)
 """
-test_presswork
-----------------------------------
-
-Tests for `presswork` module. Must be run with pytest.
-
-"""
-from collections import namedtuple
 import os
+from collections import namedtuple
 
 import pytest
 
-from presswork.text._pymarkovchain_fork import PyMarkovChainWithNLTK
+from presswork.text import grammar
+from presswork.text.thirdparty._pymarkovchain import PyMarkovChainForked
 
 SentencesTestCase = namedtuple('SentencesTestCase', ['text', 'phrase_in_each_sentence'])
 
+# TODO move this test case up to top level conftest as `def text_with_expected_phrase` and it is a UserString
+# so there is no confusion about what "type" it is in conftest vs the usage, it can just be used like a string,
+# but it does have metadata of .phrase_in_each_sentence, that can be used in asserts.
 TEST_CASE_ZEN_OF_PYTHON = SentencesTestCase(
     phrase_in_each_sentence="better than",
     text="""
@@ -34,10 +33,11 @@ Sparse is better than dense.
 # TODO more test cases
 # TODO test cases for different window/state sizes
 
-@pytest.fixture         # FIXME parametrize this - do both 'raw' and 'wrapped' PyMarkovChainWithNLTK......
+@pytest.fixture         # FIXME parametrize this - do both 'raw' and 'wrapped' PyMarkovChainForked......
 def pymc(tmpdir):
-    db_file_path = os.path.join(str(tmpdir), "presswork_markov_db")
-    pymc = PyMarkovChainWithNLTK.with_persistence(db_file_path)
+    db_file_path = os.path.join(str(tmpdir), "presswork_markov_db")  # TODO get rid of db stuff
+    pymc = PyMarkovChainForked.with_persistence(db_file_path)
+    pymc._sentence_tokenizer = grammar.SentenceTokenizerWhitespace()
     return pymc
 
 
@@ -70,7 +70,7 @@ def test_high_level_behavior(pymc, test_case):
 
 
 def test_post_process():
-    res = PyMarkovChainWithNLTK.post_process(
+    res = PyMarkovChainForked.post_process(
         'foo . bar test : ,! baz ! hi yepyep: blah ; hi')
     assert res == "foo. bar test: ,! baz! hi yepyep: blah; hi"
 
@@ -88,7 +88,7 @@ def test_database_persistence(pymc, test_case):
     # dump DB, use another instance to load DB...
     pymc.database_dump()
     # we dumped the DB so another instance w/ same db_file_path argument should behave same.
-    text_maker_2 = PyMarkovChainWithNLTK.with_persistence(pymc.db_file_path)
+    text_maker_2 = PyMarkovChainForked.with_persistence(pymc.db_file_path)
     # notice we do not call `database_init` - that doesn't need to happen
     assert test_case.phrase_in_each_sentence in text_maker_2.make_sentence()
 

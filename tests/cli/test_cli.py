@@ -1,8 +1,10 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 """ Tests for presswork CLI
+
+doesn't re-hash same checks from test_essentials_and_parity - moreso testing integration between the CLI and the
+text makers. as well as some behavior/interface aspects of the CLI.
 """
-import codecs
 
 from mock import patch
 import pytest
@@ -10,6 +12,7 @@ import pytest
 from click.testing import CliRunner
 
 from presswork import cli
+from presswork.text import grammar
 
 from tests import helpers
 
@@ -19,20 +22,47 @@ def runner():
     return CliRunner()
 
 
-
 def test_cli_larger_input_from_file(runner, text_newlines):
-    result = runner.invoke(cli.main, args=['--input-text', text_newlines.filename], catch_exceptions=False)
+    """ take in text fixture(s)... should be able to gobble up books no issue. from files by filename
+    """
+    input_filename = text_newlines.filename
+    input_text = text_newlines
+
+    result = runner.invoke(cli.main, catch_exceptions=False, args=[
+        '--input-filename', input_filename,
+        '--tokenize-strategy', 'whitespace',
+    ])
     output_text = result.output.strip()
     assert output_text
-    assert helpers.output_text_has_subset_of_words_from_input_text(
-            output_text=output_text, input_text=text_newlines)
+
+    output_text = result.output.strip()
+    tokenizer = grammar.create_sentence_tokenizer('whitespace')
+
+    word_set_comparison = helpers.WordSetComparison(
+            generated_tokens=tokenizer(output_text), input_tokenized=tokenizer(input_text))
+    assert word_set_comparison.output_is_subset_of_input
 
 
 def test_cli_larger_input_from_stdin(runner, text_newlines):
-    result = runner.invoke(cli.main, input=unicode(text_newlines), args=['--input-text', '-'], catch_exceptions=False)
+    """ take in text fixture(s)... should be able to gobble up books no issue. from stdin
+    """
+
+    # Click's CliRunner is very useful, but does seem to choke when "input=" (stdin) parameter is not perfectly
+    # encoded. we want other parts of the code, such as direct TextMaker usage, to consume anything thrown at it,
+    # but it OK if the CLI expects clean/precise encodings. so we streamroll a bit here, but it's OK for *this* test.
+    input_text = unicode(text_newlines, encoding='utf-8', errors='replace')
+
+    result = runner.invoke(cli.main, catch_exceptions=False, input=input_text, args=[
+        '--input-filename', '-',
+        '--tokenize-strategy', 'whitespace',
+    ])
+
     output_text = result.output.strip()
-    assert helpers.output_text_has_subset_of_words_from_input_text(
-            output_text=output_text, input_text=text_newlines)
+    tokenizer = grammar.create_sentence_tokenizer('whitespace')
+
+    word_set_comparison = helpers.WordSetComparison(
+            generated_tokens=tokenizer(output_text), input_tokenized=tokenizer(input_text))
+    assert word_set_comparison.output_is_subset_of_input
 
 
 def test_cli_default_strategy(runner):
@@ -43,8 +73,9 @@ def test_cli_default_strategy(runner):
     assert 'better than' in result.output
 
 
-def test_cli_choose_strategy_crude(runner):
+def test_cli_choose_strategy(runner):
     stdin = "a b c d a b c x"
+
     # positive case
     with patch(target="presswork.text.text_makers.TextMakerCrude.input_text") as mock:
         result = runner.invoke(cli.main, input=stdin, args=["--strategy", "crude"], catch_exceptions=False)

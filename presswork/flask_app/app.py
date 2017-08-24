@@ -15,6 +15,7 @@ from wtforms import validators, StringField, IntegerField, SelectField, Validati
 
 from presswork import constants
 from presswork.sanitize import SanitizedString
+from presswork.text import grammar
 from presswork.text import text_makers
 
 from presswork.flask_app import template_filters
@@ -62,7 +63,7 @@ class MarkovChainTextMakerForm(Form):
     strategy = StringField(
             "Strategy (leave this as default, usually) (choices: {})".format(", ".join(text_makers.CLASS_NICKNAMES)),
             validators=[validators.InputRequired(),validators.Length(max=20),],
-            default=text_makers.DefaultTextMaker.NICKNAME)
+            default=text_makers.DEFAULT_TEXT_MAKER_NICKNAME)
 
     # TODO(hangtwenty) test_app should have a test of this - input 'bogus' and get validationerror on page
     def validate_strategy(form, field):
@@ -96,9 +97,10 @@ def markov():
         text_maker = text_makers.create_text_maker(
                 input_text,
                 class_or_nickname=strategy,
+                sentence_tokenizer_nickname_or_instance="nltk",  # TODO should this be pickable in webapp? (nah?)
                 ngram_size=ngram_size,)
-        text_body = text_makers.rejoin(text_maker.make_sentences(count=count_of_sentences_to_make))
-        text_title = text_makers.rejoin(text_maker.make_sentences(count=1))
+        text_body = grammar.rejoin(text_maker.make_sentences(count=count_of_sentences_to_make))
+        text_title = grammar.rejoin(text_maker.make_sentences(count=1))
 
         return render_template(
             'index.html', form=form, text_made=text_body, text_made_title=text_title)
