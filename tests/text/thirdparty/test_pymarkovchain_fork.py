@@ -11,7 +11,7 @@ from collections import namedtuple
 import pytest
 
 from presswork.text import grammar
-from presswork.text.thirdparty._pymarkovchain import PyMarkovChainForked
+from presswork.text.markov.thirdparty._pymarkovchain import PyMarkovChainForked
 
 SentencesTestCase = namedtuple('SentencesTestCase', ['text', 'phrase_in_each_sentence'])
 

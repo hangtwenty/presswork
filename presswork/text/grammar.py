@@ -49,7 +49,6 @@ design notes -- Joiners
         whitespace/indentation, enjambment, etc., as they re-join. Could be good for (pseudo-)poetic uses
 
 """
-import collections
 import logging
 import re
 import string
