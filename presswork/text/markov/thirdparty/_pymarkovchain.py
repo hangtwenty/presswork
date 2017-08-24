@@ -18,6 +18,8 @@ Markovify is preferable for most uses but this implementation is kept here as a 
 
 from __future__ import division
 
+from presswork import constants
+
 try:
     # try to use cPickle for better performance (python2)
     import cPickle as pickle
@@ -66,7 +68,7 @@ class PyMarkovChainForked(object):
     """
     # TODO this should use tmpdir
     DEFAULT_DB_FILE_PATH = os.path.join(os.path.dirname(__file__), "presswork_markov_db")
-    DEFAULT_WINDOW_SIZE_WORDS = 2
+    DEFAULT_WINDOW_SIZE_WORDS = constants.DEFAULT_NGRAM_SIZE
 
     def __init__(
             self,

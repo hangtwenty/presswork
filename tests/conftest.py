@@ -113,3 +113,25 @@ def text_mixed(request):
     """
     filename = request.param
     return StrFromFilename.load_from_filename(filename)
+
+
+@pytest.fixture(params=[
+    "",
+    " " * 9999,
+    "\n",
+    "\r",
+    "\n\r",
+    "\x20",
+    "\x00",])
+def empty_or_null_string(request):
+    """
+
+    I had a regression during early dev of `crude` where empty inputs were causing undefined behavior.
+    These inputs helped ferret it out & proved the fix, so keeping them as regression tests.
+
+    that should be tested closer to the unit that is at fault (tests for `crude`), but should be tested here too,
+    as the CLI shouldn't panic or wait on an infinite loop in these cases. (regardless of impl details)
+    :param runner:
+    :return:
+    """
+    return request.param

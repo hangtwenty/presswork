@@ -29,12 +29,12 @@ from presswork.text import text_makers
               default=constants.DEFAULT_NGRAM_SIZE,
               show_default=True)
 @click.option('-s', '--strategy',
-              type=click.Choice(['pymc', 'crude']),
+              type=click.Choice(['markovify', 'pymc', 'crude']),
               help="which strategy to use for markov chain model & text generation. "
                    "'markovify' is the most performant and best for most purposes. "
                    "'pymc' is based on PyMarkovChain. "
                    "'crude' is crude and limited. ",
-              default="crude")
+              default="markovify")
 @click.option('-t', '--tokenize-strategy',
               type=click.Choice(['nltk', 'whitespace']),
               help="which strategy to use for tokenizing the input text before training the model. "
@@ -57,9 +57,9 @@ def main(ngram_size, strategy, tokenize_strategy, input_filename, input_encoding
 
     logger.debug("CLI invocation variable dump again: {}".format(locals()))
     text_maker = text_makers.create_text_maker(
-            input_text=SanitizedString(input_text),
             class_or_nickname=strategy,
             sentence_tokenizer_nickname_or_instance=tokenize_strategy,
+            input_text=SanitizedString(input_text),
             ngram_size=ngram_size)
 
     # TODO over here we shouldn't know about sentences and joining. when text maker has a make_text method, switch to that
@@ -73,5 +73,5 @@ def main(ngram_size, strategy, tokenize_strategy, input_filename, input_encoding
     sys.stdout.write("\n")
 
 
-if __name__ == "__main__":
+if __name__ == "__main__":   # pragma: no cover
     main()

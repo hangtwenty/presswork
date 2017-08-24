@@ -54,6 +54,7 @@ import re
 import string
 from UserList import UserList
 
+import markovify
 import nltk
 
 from presswork.sanitize import SanitizedString
@@ -140,7 +141,7 @@ class WordTokenizerWhitespace(BaseWordTokenizer):
 class SentenceTokenizerWhitespace(BaseSentenceTokenizer):
     """ crude - similar to string.splitlines(), maybe handles a couple other edge cases. Backed by regex.
 
-    Default pairing - WordTokenizerWhitespace, of course.
+    Default pairing - WordTokenizerWhitespace (tokenize both sentences & words on whitespace)
 
     http://www.nltk.org/api/nltk.tokenize.html
     """
@@ -158,6 +159,25 @@ class SentenceTokenizerWhitespace(BaseSentenceTokenizer):
             ['x', 'y', 'x', 'y']
         """
         return text.splitlines()
+
+
+class SentenceTokenizerMarkovify(BaseSentenceTokenizer):
+    """ Markovify has its own 'sentence splitter' using regexes, it's like Whitespace one with a little more oomph.
+
+    Default pairing - WordTokenizerWhitespace, of course.
+
+    https://github.com/jsvine/markovify/blob/v0.6.0/markovify/splitters.py#L41-L53
+    """
+    def __init__(self, word_tokenizer=None):
+        if not word_tokenizer:
+            word_tokenizer = WordTokenizerWhitespace()
+        super(SentenceTokenizerMarkovify, self).__init__(word_tokenizer)
+
+    def _tokenize_to_sentence_strings(self, text):
+        if isinstance(text, unicode) or (hasattr(text, "data") and isinstance(text.data, unicode)):
+            logger.warning("Markovify does not officially support unicode, YMMV! "
+                           "Most likely, your unicode will be stripped out or replaced with ASCII.".format(type(text)))
+        return markovify.splitters.split_into_sentences(text)
 
 
 class WordTokenizerTreebank(BaseWordTokenizer):
@@ -199,16 +219,7 @@ class SentenceTokenizerPunkt(BaseSentenceTokenizer):
         return self.strategy.tokenize(unicode(text))
 
 
-# # #TODO
-# # class MarkovifySentenceTokenizer(BaseSentenceTokenizer):
-# #     """ markovify has its own 'sentence splitter' using regexes, might as well have it as an option
-# #       https://github.com/jsvine/markovify/blob/master/markovify/splitters.py#L41-L53
-# #     """
-# #     def _tokenize_to_sentence_strings(self, text):
-# #         return crude_split_sentences(text)
-#
-#
-#
+
 # class BaseJoiner(object):
 #     # TODO need to decide on interface. Probably it just takes SentencesAsWordLists as sole argument, yeah?
 #     pass
@@ -230,12 +241,17 @@ class WordList(UserList):
 
     def __init__(self, seq):
         super(WordList, self).__init__(seq)
+        self.sanity_check()
 
     def sanity_check(self):
         if self.data:
             if not isinstance(self.data[0], basestring):
                 raise ValueError("should be list of strings")
 
+    def unwrap(self):
+        """ return internal list (useful when we need to pass to something that is over-strict about type-checking)
+        """
+        return self.data
 
 class SentencesAsWordLists(UserList):
     """ basically a list of lists of strings, with helper methods that make sense for 'sentences'
@@ -249,6 +265,16 @@ class SentencesAsWordLists(UserList):
         if self.data:
             if isinstance(self.data[0], basestring):
                 raise ValueError("should be list of lists, appears to be list of strings")
+
+    def unwrap(self):
+        """ return internal list (useful when we need to pass to something that is over-strict about type-checking)
+        """
+        try:
+            # if self.data is a list of WordList instances, this will work
+            return [word_list.unwrap() for word_list in self.data]
+        except AttributeError:
+            return [word_list for word_list in self.data]
+
 
 
 # TODO delete this method
