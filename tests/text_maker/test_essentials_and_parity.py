@@ -1,7 +1,13 @@
+""" test TextMaker variants - esp. essential properties of markov chain text generators, and fundamental parity
+"""
 # -*- coding: utf-8 -*-
 import pytest
 
+import presswork.text.grammar
+from presswork.text import grammar
 from presswork.text import text_makers
+
+from tests import helpers
 
 
 @pytest.fixture(params=text_makers.CLASS_NICKNAMES)
@@ -33,13 +39,58 @@ def all_text_makers(request):
     return all_text_makers
 
 
-@pytest.mark.parametrize('ngram_size', [2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12])
+@pytest.mark.parametrize('ngram_size', range(2, 6))
+@pytest.mark.parametrize('sentence_tokenizer', [
+    grammar.SentenceTokenizerPunkt(word_tokenizer=grammar.WordTokenizerTreebank()),
+    grammar.SentenceTokenizerPunkt(word_tokenizer=grammar.WordTokenizerWhitespace()),
+    grammar.SentenceTokenizerWhitespace(word_tokenizer=grammar.WordTokenizerTreebank()),
+])
+def test_essential_properties_of_text_making(each_text_maker, ngram_size, sentence_tokenizer, text_any):
+    """ confirm some essential known properties of text-making output, common to all the text makers
+    :param each_text_maker: each text maker, injected by pytest from each_text_maker fixture.
+    :param ngram_size: passed to text maker, here we test a 'reasonable' range (other cases test bigger range)
+    :param sentence_tokenizer:  in practice the tokenizer choice is significant, however in test case we just try each.
+        when tokenizer is same on input & output, it 'cancels out'.
+        so we can take this opportunity to exercise many tokenizers, and affirm mix-and-match-ability
+    :param text_any: a fixture from conftest.py: 1 at a time, will be each fixture from tests/fixtures/plaintext
+    """
+    text_maker = each_text_maker
+    text_maker.ngram_size = ngram_size
+
+    _input_tokenized = text_maker.input_text(text_any)
+
+    sentences = text_maker.make_sentences(300)
+
+    word_set_comparison = helpers.WordSetComparison(generated_tokens=sentences, input_tokenized=_input_tokenized)
+    assert word_set_comparison.output_is_subset_of_input
+
+
+@pytest.mark.parametrize('sentence_tokenizer', [
+    grammar.SentenceTokenizerWhitespace(word_tokenizer=grammar.WordTokenizerWhitespace()),
+])
+def test_text_making_with_blankline_tokenizer(each_text_maker, sentence_tokenizer, text_newlines):
+    """ covers some of same ground as test_essential_properties, but uses tokenizer that only works with line-separated
+    :param text_newlines: 1 text at a time, but only fixture(s) where it is (mostly) newline separated
+    """
+    text_maker = each_text_maker
+
+    _input_tokenized = text_maker.input_text(text_newlines)
+    sentences = text_maker.make_sentences(200)
+
+    word_set_comparison = helpers.WordSetComparison(generated_tokens=sentences, input_tokenized=_input_tokenized)
+    assert word_set_comparison.output_is_subset_of_input
+
+    # as a followup, let's double check that our comparison is valid (by confirming invalidated case would fail)
+    _test_self_ensure_test_would_fail_if_comparison_was_invalid(
+            generated_tokens=sentences, input_tokenized=_input_tokenized)
+
+
+@pytest.mark.parametrize('ngram_size', range(2, 12))
 def test_easy_deterministic_cases_are_same_for_all_text_makers(all_text_makers, text_easy_deterministic, ngram_size):
     """ Any TextMaker will return deterministic results from seq of words w/ no duplicates; all strategies should match
 
-    (very high ngram_sizes aren't very useful, but just checking that sparks don't fly for no good reason)
+    (btw high ngram_sizes aren't very useful, but included here because sparks should not fly...!)
     """
-
     outputs = {}
     for text_maker in all_text_makers:
         text_maker.ngram_size = ngram_size
@@ -49,10 +100,29 @@ def test_easy_deterministic_cases_are_same_for_all_text_makers(all_text_makers, 
 
     # expected is that all text makers output same deterministic sentence for these inputs.
     # we can check that pretty elegantly by stringifying, calling set, and making sure their is only 1 unique output
-    outputs_rejoined = {name: text_makers.rejoin(output).strip() for name, output in outputs.items()}
+    # (temporary dict var is not necessary for assertion - is just for ease of debugging when something goes wrong)
+    outputs_rejoined = {name: presswork.text.grammar.rejoin(output).strip() for name, output in outputs.items()}
     assert len(set(outputs_rejoined.values())) == 1
 
 
+def _test_self_ensure_test_would_fail_if_comparison_was_invalid(generated_tokens, input_tokenized):
+    """ for posterity, let's add a self-check to make sure failure WOULD happen when it should.
+
+    given comparison test has already passed - generate_tokens *ARE* subset of input_tokenized -
+    then we can take those valid args, and invalidate them, by throwing erroneous token onto generated_tokens.
+    this should fail, confirming test would fail if something was off.
+    """
+    invalid_word_set_comparison = helpers.WordSetComparison(
+            generated_tokens=generated_tokens + ["XXXXXXXXXXXX_Not_In_Input" * 20],
+            input_tokenized=input_tokenized,
+            quiet=True)
+    assert not invalid_word_set_comparison.output_is_subset_of_input
+    return True
+
+
+# ------------------------------------------------------------------------------------------------
+# Following tests are more about avoiding usage issues (more than properties of the text making)
+# ================================================================================================
 def test_locked_after_input_text(each_text_maker):
     text_maker = each_text_maker
     text_maker.input_text("Foo bar baz. Foo bar quux.")
@@ -62,8 +132,8 @@ def test_locked_after_input_text(each_text_maker):
 
     output = text_maker.make_sentences(50)
 
-    assert "This" not in text_makers.rejoin(output)
-    assert "loaded" not in text_makers.rejoin(output)
+    assert "This" not in presswork.text.grammar.rejoin(output)
+    assert "loaded" not in presswork.text.grammar.rejoin(output)
 
 
 def test_cannot_change_ngram_size_after_inputting_text(each_text_maker):

@@ -1,14 +1,15 @@
 # -*- coding: utf-8 -*-
 """ Very basic homegrown implementation for fun & reference purposes.
 
-The implementations in `thirdparty` are preferable for actual usage, outside of development and play purposes.
+The implementations in `thirdparty` are preferable for nearly all use-cases!
+
 Notable deficiencies of the 'crude' implementation:
     - no maturity or battle testing, so haven't found the edge cases yet
     - no optimization of memory usage: instead of storing #s of probabilities, raw lists are used
         (Simplest Thing That Could Possibly Work, demos the essential algorithm, that's all)
     - no optimization of lookups for performance boosts (contrast with jsvine/markovify)
 
-Why it's here:
+Why it's kept around:
     - provides something to contrast the other implementations with, for testing and benchmarking
     - provides a stripped-down reference implementation for understanding the algorithm (which is fundamentally similar
     to the other implementations). Note, it's not a minimal 'pure' Markov Chain impl., rather it's a minimal
@@ -19,84 +20,57 @@ import logging
 import pprint
 import random
 
-from presswork.constants import DEFAULT_NGRAM_SIZE
-from presswork.text.sentences_and_words import crude_split_sentences, crude_split_words
+from presswork import constants
 
 logger = logging.getLogger("presswork")
 
-EXAMPLE_SOURCE = u"""
-Beautiful is better than ugly.
-Explicit is better than implicit.
-Simple is better than complex.
-Complex is better than complicated.
-Flat is better than nested.
-Sparse is better than dense.
-"""
-
-# By using empty string as start-of-sentence-marker, we can avoid special handling later.
+# By using empty string as start-of-sentence-marker, we can avoid special handling for this token later.
 START_SYMBOL = u""
 END_SYMBOL = u""
 
 
-def crude_markov_chain(
-        source_text=EXAMPLE_SOURCE,
-        ngram_size=DEFAULT_NGRAM_SIZE,
-        fn_to_split_sentences=crude_split_sentences,
-        fn_to_split_words=crude_split_words,
-):
-    # FIXME: this should just take list-of-lists (sentences, words) ; caller should do splitting etc.
-    # def iter_make_sentences(source_text) :
-    #       source_text -> sentences_and_words = [[word, ...], [word, ...]] (using composable fns for splitting);
-    #       model = chain(sentences_and_words)
-    #       <exercise the model>
-    # def iter_make_sentences(model) :
-    #       <exercise the model>
-    # so yeah pretty easy to see how refactoring to a TextMaker class would help.
-
-    # model = {
-    #     # TODO mmm can I get rid of the starter
-    #     (START_SYMBOL * ngram_size): [],
-    # }
-
+def crude_markov_chain(sentences_as_word_lists, ngram_size=constants.DEFAULT_NGRAM_SIZE, ):
+    """ Build a Markov Chain model of sentences, words. Bare-essentials/crude implementation
+    :param sentences_as_word_lists:
+    :param ngram_size:
+    :return:
+    """
     model = {}
 
-    # TODO really no source text handling should be done here, so move it out... this should take [[word,...]] already processed
-    if not source_text:
+    if not sentences_as_word_lists:
         return model
 
-    for sentence in crude_split_sentences(source_text):
-        words = fn_to_split_words(sentence)
+    for word_sequence in sentences_as_word_lists:
 
-        words_with_padding = ngram_for_sentence_start(ngram_size) + words + (END_SYMBOL,)
+        words_with_padding = ngram_for_sentence_start(ngram_size) + word_sequence + (END_SYMBOL,)
 
-        for i in xrange(0, len(words) + 1):
+        for i in xrange(0, len(word_sequence) + 1):
             ngram = tuple(words_with_padding[i:(i + ngram_size)])
 
             try:
                 next_word = words_with_padding[i + ngram_size]
             except IndexError:
-                # TODO(hangtwenty) now that I have the padding (END_SYMBOL,) should I get rid of the IndexError catch?
-                # .................. or, get rid of the padding (END_SYMBOL,) and keep this catch?
+                # (This failsafe should no longer be necessary, but leaving it anyways; it is not *in*correct.)
                 next_word = END_SYMBOL
 
-            # Re: memory usage --
-            # In this 'crude' model, we store lists of literal occurrences.
-            # If we were optimizing for memory usage, we could 'reduce' to Counter.
-            #       model[ngram][<unique_next_word>] = Counter
-            # Other implementations (rightly) do exactly that. (Or normalize the Counter to 0.0-1.0 probability).
-            # Here, we will continue to optimize for obviousness, at the expense of memory usage.
+            # Re: memory usage -- see note in module docstring. (left unoptimized)
             if model.get(ngram, None) is None:
                 model[ngram] = [next_word]
             else:
                 model[ngram].append(next_word)
 
     if logger.level == logging.DEBUG:
-        logger.debug(u'model=\n{}'.format(pprint.pformat(model, width=2)))
+        try:
+            logger.debug(u'model=\n{}'.format(pprint.pformat(model, width=2)))
+        except:
+            logger.exception(u'hit exception while attempting to dump the model to debug-log. swallowing')
 
     return model
 
 
 def is_empty_model(model):
+    """ Returns True if model is 'empty' (what results if input is just empty string or whitespace)
+    """
     if not model:
         return True
 
@@ -108,11 +82,12 @@ def is_empty_model(model):
 
 
 def iter_make_sentences(
-        crude_markov_model,
-        ngram_size=DEFAULT_NGRAM_SIZE,
-        count_of_sentences_to_generate=100,
-        max_loops_per_sentence=25):
-
+        crude_markov_model, ngram_size=constants.DEFAULT_NGRAM_SIZE, count=100, max_loops_per_sentence=25):
+    """ The fun part! Generate probable sentences based on a model. Bare-essentials/crude implementation.
+    :param crude_markov_model: a model i.e. from crude_markov_chain() function
+    :param ngram_size: N in N-gram, AKA state size or window size. same as elsewhere. must match ngram size of model.
+    :return: (generator) yields lists-of-words.
+    """
     current_ngram = None
     sentence = []
     end_sentence = False
@@ -121,11 +96,17 @@ def iter_make_sentences(
     _per_sentence_loop_counter = 0
 
     if is_empty_model(crude_markov_model):
+        logger.debug(u'is_empty_model({!r}) => True, short-circuit & return empty sentence'.format(crude_markov_model))
         yield sentence
         raise StopIteration()
 
-    while _sentences_counter < count_of_sentences_to_generate:
-        logger.debug('current sentence = {}, i (sentence#) = {}, per_sentence_loop_counter={}'.format(
+    _model_ngram_size = len(crude_markov_model.keys()[0])
+    if _model_ngram_size != ngram_size:
+        logger.error(u"make_sentences ngram_size={}, but model ngram_size={!r}".format(ngram_size, _model_ngram_size))
+        raise ValueError(u"ngram_size for make_sentences must match ngram_size of model.")
+
+    while _sentences_counter < count:
+        logger.debug(u'current sentence = {}, i (sentence#) = {}, per_sentence_loop_counter={}'.format(
                 sentence, _sentences_counter, _per_sentence_loop_counter))
 
         if not current_ngram:
@@ -135,10 +116,9 @@ def iter_make_sentences(
             next_word_options = crude_markov_model[current_ngram]
             next_word = random.choice(next_word_options)
             sentence.append(next_word)
-            # logger.debug('this sentence now = {}'.format(sentence))
             current_ngram = current_ngram[1:] + (next_word,)
         except (KeyError, IndexError):
-            # when we hit a 'dead end' we consider that the end of the 'sentence'
+            # when we hit a 'dead end' that's alright, we just consider that the end of the 'sentence'
             end_sentence = True
 
         if _per_sentence_loop_counter >= max_loops_per_sentence:
@@ -160,8 +140,6 @@ def iter_make_sentences(
 
 
 def ngram_for_sentence_start(ngram_size):
-    """ makes more believable sentences if (a) model has special sentence-start and (b) gen uses same sentence starts
-
-    see the usage, and it'll make more sense ;-) refactored up to a function only to keep it DRY/ avoid future mistakes
+    """ we get better results with special-sentence-start ngram (assuming model & gen use the same one).
     """
     return tuple((START_SYMBOL,) * ngram_size)

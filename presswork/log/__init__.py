@@ -20,7 +20,7 @@ def setup_logging(path_to_logging_yaml=os.path.join(HERE, "logging.yaml")):
     global PRESSWORK_LOGGING_HAS_BEEN_SET_UP
     if PRESSWORK_LOGGING_HAS_BEEN_SET_UP:
         logger = logging.getLogger('presswork')
-        logger.warning('setup_logging() has already been called! short-circuiting and returning with no changes.')
+        logger.debug('setup_logging() has already been called! short-circuiting and returning with no changes.')
         return logger
 
     if path_to_logging_yaml:

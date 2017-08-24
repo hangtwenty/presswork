@@ -1,24 +1,19 @@
 # -*- coding: utf-8 -*-
-""" 'Legacy' but usable Markov Chain Text Maker class. Based on PyMarkovChain, added NLTK tokenization.
+""" 'Legacy' but usable Markov Chain Text Maker class. Forked from PyMarkovCHain
 
--------------------------------
+------------------------------------------------------------------------------------------------------------
 NOTES RE: AUTHORSHIP & CAVEATS
-===============================
+============================================================================================================
 
 Forked from PyMarkovChain==1.7.5 MarkovChain class
 (https://github.com/TehMillhouse/PyMarkovChain/tree/ade01f64b6107e426f6c01168aae14ad238c656f).
-Markov-Chain implementation details mostly left the same (I do not claim credit),
-I forked to bring NLTK into the mix. (Original class did not have good extension points.)
+Its algorithm is left the (mostly) same, though I did refactor some things after forking.
 
-Other implementations may be added soon, and I will consider this one "legacy" ...
-For now I am keeping it as a way to compare results from 2+ Markov Chain Text Maker implementations.
-Since this codebase is for fun and exploration, I'm keeping it for comparison purposes.
+I originally forked it to bring NLTK into the mix for tokenizing (Original class did not have good extension points.)
+... but now, have hollowed it out further.
 
-Reviewing a while later, I don't like these things about it:
-    - not enough separation of concerns - markov chain, text model, and text maker are all mixed together
-    - implementation could be clearer
-    - persistence uses pickle (pickle has bad security posture. This is just a toy but still, better to use JSON.)
-    - no performance testing or optimization
+Markovify is preferable for most uses but this implementation is kept here as a contrast or fallback.
+(Since this repo is non-utilitarian anyways. Nice excuse eh!)
 """
 
 from __future__ import division
@@ -35,14 +30,10 @@ import os
 import random
 import re
 
-from nltk import TreebankWordTokenizer
-import nltk
-
-RE_PUNCTUATION = re.compile(ur'\p{P}')
 SPECIAL_TOKEN = u''
 
 
-# <factories>  # Define some factories as functions so we can easily pickle them
+
 def _db_factory():
     """ DB data structure: dict like  {word_sequence: {next_word: probability}}
     """
@@ -61,14 +52,11 @@ def _one():
     return 1.0
 
 
-# </factories>
-
-
 class EndOfChainException(Exception):
     pass
 
 
-class PyMarkovChainWithNLTK(object):
+class PyMarkovChainForked(object):
     """ A text model and text maker in a single class, with options for local filesystem persistence.
 
     Forked from PyMarkovChain library's MarkovChain class (https://pypi.python.org/pypi/PyMarkovChain/)
@@ -84,7 +72,7 @@ class PyMarkovChainWithNLTK(object):
             self,
             db_file_path=None,
             window=DEFAULT_WINDOW_SIZE_WORDS,
-            word_tokenizer=None
+            sentence_tokenizer=None,
     ):
         self.window = window
 
@@ -95,18 +83,17 @@ class PyMarkovChainWithNLTK(object):
                 with open(self.db_file_path, 'rb') as dbfile:
                     self.db = pickle.load(dbfile)
             except (IOError, ValueError):
-                logging.warn('db_file_path given, but unreadable (not found, or corrupt), using empty database')
+                logging.debug('db_file_path given, but unreadable (not found, or corrupt), using empty database')
 
         if self.db is None:
             self.db = _db_factory()
 
-        self._word_tokenizer = word_tokenizer or TreebankWordTokenizer()
-        self._sentence_tokenizer = nltk.data.load('tokenizers/punkt/english.pickle')
+        self._sentence_tokenizer = sentence_tokenizer
 
     #@DeprecationWarning TODO find usages, update to use something else, then delete this method
     @classmethod
     def with_persistence(self, db_file_path=DEFAULT_DB_FILE_PATH, **kwargs):
-        return PyMarkovChainWithNLTK(db_file_path=db_file_path, **kwargs)
+        return PyMarkovChainForked(db_file_path=db_file_path, **kwargs)
 
     @property
     def _special_ngram(self):
@@ -118,29 +105,35 @@ class PyMarkovChainWithNLTK(object):
     def increment_words(self, words):
         self.db[self._special_ngram][words[0]] += 1
 
-    def database_init(self, text_input_as_string):
+    # TODO(hangtwenty) next step in parity tests is to get this to accept list-of-lists with no specific parsing...
+    # i.e. parsing done by caller. then both crude & pymc can be using the same exact sentence-splitter & then the
+    # case that asserts they are deterministic can work...
+    def database_init(self, text_input):
         """ Generate word probability database from raw content string """
-        text_input_as_string = \
-            self._sentence_tokenizer.tokenize(text_input_as_string)
+        # FIXME remove this overloading. it ishould only accept list-of-lists. just need to fixup those unit tests
+        if isinstance(text_input, basestring):
+            sentences_as_word_seqs = \
+                self._sentence_tokenizer.tokenize(text_input)
+        else:
+            sentences_as_word_seqs = text_input
         # I'm using the database to temporarily store word counts
         # We need a special symbol for the beginning of a sentence.
         self.db[self._special_ngram][SPECIAL_TOKEN] = 0.0
-        for line in text_input_as_string:
-            words = self._word_tokenizer.tokenize(line)
-            if len(words) == 0:
+        for word_seq in sentences_as_word_seqs:
+            if len(word_seq) == 0:
                 continue
             # first word follows a sentence end
-            self.increment_words(words)
+            self.increment_words(word_seq)
 
             for order in range(1, self.window + 1):
-                for i in range(len(words) - 1):
-                    if i + order >= len(words):
+                for i in range(len(word_seq) - 1):
+                    if i + order >= len(word_seq):
                         continue
-                    word = tuple(words[i:i + order])
-                    self.db[word][words[i + order]] += 1
+                    word = tuple(word_seq[i:i + order])
+                    self.db[word][word_seq[i + order]] += 1
 
                 # last word precedes a sentence end
-                self.db[tuple(words[len(words) - order:len(words)])][SPECIAL_TOKEN] += 1
+                self.db[tuple(word_seq[len(word_seq) - order:len(word_seq)])][SPECIAL_TOKEN] += 1
 
         # We've now got the db filled with parametrized word counts
         # We still need to normalize this to represent probabilities
@@ -184,20 +177,20 @@ class PyMarkovChainWithNLTK(object):
         for _ in range(0, number):
             sentences.append(self.make_sentence())
         generated = u"  ".join(sentences)
-        return PyMarkovChainWithNLTK.post_process(generated)
+        return PyMarkovChainForked.post_process(generated)
 
     #@DeprecationWarning TODO find usages, update to use something else, then delete this method
     def make_sentence(self):
         """ Generate a "sentence" with the database of known text """
         generated = self._accumulate_with_seed(self._special_ngram)
-        return PyMarkovChainWithNLTK.post_process(generated)
+        return PyMarkovChainForked.post_process(generated)
 
     #@DeprecationWarning TODO find usages, update to use something else, then delete this method
     def make_sentence_with_seed(self, seed):
         """ Generate a "sentence" with the database and a given word """
         words = self._seed_str_to_seed_tokens(seed)
         generated = self._accumulate_with_seed(words)
-        return PyMarkovChainWithNLTK.post_process(generated)
+        return PyMarkovChainForked.post_process(generated)
 
     def _seed_str_to_seed_tokens(self, seed_str):
         # FIXME hmm, not very clear on its own but was refactored out because it's subtle and was duplicated.. (DRY up)
@@ -213,7 +206,7 @@ class PyMarkovChainWithNLTK(object):
     #@DeprecationWarning TODO find usages, update to use something else, then delete this method
     @staticmethod
     def post_process(string):
-        string = PyMarkovChainWithNLTK._remove_space_before_phrase_end_punctuation(string)
+        string = PyMarkovChainForked._remove_space_before_phrase_end_punctuation(string)
         return string
 
     #@DeprecationWarning TODO for this specific one, get rid of in this class, but maybe move somewhere generic, it's handy

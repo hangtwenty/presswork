@@ -20,8 +20,10 @@ FILENAMES_NEWLINES = get_abs_path_to_files_in_subfolder('newlines')
 FILENAMES_PROSE = get_abs_path_to_files_in_subfolder('prose')
 FILENAMES_MIXED = get_abs_path_to_files_in_subfolder('mixed')
 
+FILENAMES_ALL = FILENAMES_NEWLINES + FILENAMES_PROSE + FILENAMES_MIXED
+
 if __name__ == "__main__":
-    # need to troubleshoot? just run like `python tests/fixtures` and get some info.
+    # need to troubleshoot? just run this directly i.e. `python tests/fixtures`, that'll help
     import pprint
 
     pprint.pprint(locals())

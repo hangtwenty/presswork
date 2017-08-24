@@ -8,13 +8,14 @@ import click
 from presswork import constants
 from presswork.log import setup_logging
 from presswork.sanitize import SanitizedString
+from presswork.text import grammar
 from presswork.text import text_makers
 
 
 @click.command()
-@click.option('-i', '--input-text',
-              help="input text to train the markov chain. by default it is expected you will pipe things in on stdin. "
-                   "if you do not use stdin, you can specify a valid filepath to read from.",
+@click.option('-i', '--input-filename',
+              help="what to read to train the markov chain. default expectation: you will pipe things in on stdin. "
+                   "if you do not use stdin, give this param with a filename to read from.",
               default='-')
 @click.option('-c', '--count',
               type=int,
@@ -29,33 +30,41 @@ from presswork.text import text_makers
               show_default=True)
 @click.option('-s', '--strategy',
               type=click.Choice(['pymc', 'crude']),
-              help="which implementation/strategy to use for markov chain text generation. "
+              help="which strategy to use for markov chain model & text generation. "
                    "'markovify' is the most performant and best for most purposes. "
                    "'pymc' is based on PyMarkovChain. "
                    "'crude' is crude and limited. ",
               default="crude")
+@click.option('-t', '--tokenize-strategy',
+              type=click.Choice(['nltk', 'whitespace']),
+              help="which strategy to use for tokenizing the input text before training the model. "
+                   "'nltk' uses NLTK's recommended sentence & word tokenizers (Punkt & Treebank). "
+                   "'whitespace' will consider sentences to be line separated, and words whitespace separated. ",
+              default='nltk')
 @click.option('-e', '--input-encoding', help="encoding of the input text.", default='utf-8', show_default=True)
 @click.option('-E', '--output-encoding', help="encoding of the output text.", default='utf-8', show_default=True)
-def main(strategy, ngram_size, input_text, count, input_encoding, output_encoding):
+def main(ngram_size, strategy, tokenize_strategy, input_filename, input_encoding, output_encoding, count,):
     logger = setup_logging()
+    logger.debug("CLI invocation variable dump: {}".format(locals()))
 
-    if input_text == '-':
+    if input_filename == '-':
         UTF8Reader = codecs.getreader(input_encoding)
         sys.stdin = UTF8Reader(sys.stdin)
         input_text = sys.stdin.read()
     else:
-        with codecs.open(input_text, 'r', encoding=input_encoding) as f:
+        with codecs.open(input_filename, 'r', encoding=input_encoding) as f:
             input_text = f.read()
 
+    logger.debug("CLI invocation variable dump again: {}".format(locals()))
     text_maker = text_makers.create_text_maker(
             input_text=SanitizedString(input_text),
             class_or_nickname=strategy,
+            sentence_tokenizer_nickname_or_instance=tokenize_strategy,
             ngram_size=ngram_size)
 
     # TODO over here we shouldn't know about sentences and joining. when text maker has a make_text method, switch to that
     sentences = text_maker.make_sentences(count)
-    logger.debug('sentences=' + str(sentences))
-    result = text_makers.rejoin(sentences)
+    result = grammar.rejoin(sentences)
 
     UTF8Writer = codecs.getwriter(output_encoding)
     sys.stdout = UTF8Writer(sys.stdout)

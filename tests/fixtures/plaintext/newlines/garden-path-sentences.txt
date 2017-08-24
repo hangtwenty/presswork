@@ -1,0 +1,102 @@
+Most sentences in this file are garden path sentences but not all of them.
+If a sentence is ambiguous, it can have more than one meaning.
+There are many types of ambiguity.
+For example, in the following sentence the word bank could mean the edge of a river, or a financial institution:
+John went to the bank.
+This is called lexical ambiguity because it is the result of one of the words having more than one possible meaning.
+This next sentence is syntactically ambiguous (the syntax, or grammar, can be understood in more than one way):
+Put the box on the table in the kitchen.
+Is the box already on the table, and to be put in the kitchen? Or is the box to be put on the table which is in the kitchen?
+From the sentence alone we cannot tell.
+Try reading the following sentences.
+They are called garden path sentences because they are easily misunderstood (they lead you down the garden path)
+even though they are all grammatical! Do
+n't worry if some of these sentences seem like nonsense at first (you have been garden pathed);
+they will be explained below.
+The prime number few.
+Fat people eat accumulates.
+The cotton clothing is usually made of grows in Mississippi.
+Until the police arrest the drug dealers control the street.
+The man who hunts ducks out on weekends.
+When Fred eats food gets thrown.
+Mary gave the child the dog bit a bandaid.
+The girl told the story cried.
+Landmine claims dog arms company.
+I shot an elephant in my pajamas.
+How he got into my pajamas I don't know.
+The peasants are revolting.
+I convinced her children are noisy.
+Helen is expecting tomorrow to be a bad day.
+The horse raced past the barn fell.
+I know the words to that song about the queen don't rhyme.
+She told me a little white lie will come back to haunt me.
+The dog that I had really loved bones.
+That Jill is never here hurts.
+The man who whistles tunes pianos.
+The old man the boat.
+Have the students who failed the exam take the supplementary.
+The raft floated down the river sank.
+We painted the wall with cracks.
+The tycoon sold the offshore oil tracts for a lot of money wanted to kill JR.
+All of these sentences are grammatical.
+Did you understand them all?
+Unless you are a linguist who has studied syntax and garden path sentences, the answer is probably "no".
+Here the sentences are clarified by adding some extra words:
+The prime (people) number few.
+(The) fat (that) people eat accumulates (in their bodies).
+The cotton (that) clothing is usually made of grows in Mississippi.
+Until the police (make the) arrest, the drug dealers control the street.
+The man, who hunts (animals), ducks out on weekends.
+When Fred eats (his dinner) food gets thrown.
+Mary gave the child (that) the dog bit a bandaid.
+The girl (who was) told the story, cried.
+I convinced her (that) children are noisy.
+Helen is expecting (for) tomorrow to be a bad day.
+The horse (which was) raced past the barn, fell (down).
+I know (that) the words to that song about the queen don't rhyme.
+She told me (that) a little white lie will come back to haunt me.
+The dog that I had (as a pet) really loved bones.
+(The fact) that Jill is never here hurts (me).
+The man who whistles (all the time) tunes pianos (for a living).
+The old (people) man the boat.
+(Please) have the students who failed the exam take the supplementary.
+The raft (that was) floated down the river, sank.
+We painted the wall (that was covered) with cracks.
+The tycoon, (who was) sold the offshore oil tracts for a lot of money, wanted to kill JR.
+Notice that there are two types of ambiguous sentence: either there is a local ambiguity (one that is cleared up once you have heard the whole sentence) or it is a global ambiguity (one that remains even after the entire sentence has been heard). Garden Path sentences normally have local ambiguity.
+In syntactic ambiguity, the same sequence of words is interpreted as having different syntactic structures. In contrast, in semantic ambiguity the structure remains the same, but the individual words are interpreted differently
+The dog of the woman that had the parasol was brown.
+The woman with the dog that had the parasol was brown.
+The dog with the woman that had the parasol was brown.
+John saw the man on the mountain with a telescope.
+The florist sent the flowers was pleased.
+The courageous guard freedom tenaciously.
+An old buddy just dropped by his girlfriend was happy to see her.
+The complex houses married or single students.
+Is that gold mine producing?
+We painted the wall with cracks.
+The cotton clothing is usually made of grows in the southern U. S.
+The man who hunts ducks out on weekends.
+When Mike eats food gets wasted.
+I gave the kid the dog bit a band-aid.
+I've convinced her children are noisy.
+Helen is expecting tomorrow to be a great day.
+The horse raced past the barn fell.
+She told me a little white lie would haunt me someday.
+The man who whistles tunes pianos.
+A sharp jab to the boxer's abs will wind him up.
+Have the patients who didn't pass take the supplement.
+The raft floated down the river sank.
+While I dressed the baby stayed in the playpen.
+I know the words to that song don't rhyme.
+She told me a little white lie will come back to haunt me.
+The cotton clothing is made of is grown in Mississippi.
+The man who hunts ducks out on weekends.
+The prime number few.
+Repetition of the same sound at the beginning of two or more stressed syllables.
+Repetition of similar vowel sounds.
+Repetition of the same word or group of words at the beginning of successive clauses, sentences, or lines.
+Helen is expecting next week to be unusually busy.
+A man is rich in proportion to the number of things which he can afford to let alone.
+I know the words to that song don't rhyme.
+Time flies like an arrow; fruit flies like a banana.
