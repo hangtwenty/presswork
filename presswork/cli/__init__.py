@@ -57,9 +57,9 @@ def main(ngram_size, strategy, tokenize_strategy, input_filename, input_encoding
 
     logger.debug("CLI invocation variable dump again: {}".format(locals()))
     text_maker = text_makers.create_text_maker(
-            input_text=SanitizedString(input_text),
             class_or_nickname=strategy,
             sentence_tokenizer_nickname_or_instance=tokenize_strategy,
+            input_text=SanitizedString(input_text),
             ngram_size=ngram_size)
 
     # TODO over here we shouldn't know about sentences and joining. when text maker has a make_text method, switch to that

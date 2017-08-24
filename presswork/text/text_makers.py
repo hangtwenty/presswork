@@ -56,7 +56,9 @@ import logging
 from presswork import constants
 from presswork.sanitize import SanitizedString
 from presswork.text import grammar
-from presswork.text.markov import thirdparty, _crude_markov
+from presswork.text.markov import _crude_markov
+from presswork.text.markov.thirdparty._markovify import MarkovifyLite
+from presswork.text.markov.thirdparty._pymarkovchain import PyMarkovChainForked
 
 logger = logging.getLogger("presswork")
 
@@ -188,7 +190,8 @@ class TextMakerMarkovify(BaseTextMaker):
 
     def __init__(self, *args, **kwargs):
         super(TextMakerMarkovify, self).__init__(*args, **kwargs)
-        # This is a bit odd, but the way Markovify is, we can't initialize cleanly until we really want to load things
+        # The way Markovify is set up, initializing isn't very useful or clean unless you already have your input text
+        # ... so we don't instantiate strategy here, instead we leave it None - lazy until _input_text() is called
         self.strategy = None
 
     def _input_text(self, sentences_as_word_lists):
@@ -196,7 +199,11 @@ class TextMakerMarkovify(BaseTextMaker):
         if hasattr(sentences_as_word_lists, 'unwrap'):
             sentences_as_word_lists = sentences_as_word_lists.unwrap()
 
-        self.strategy = thirdparty._markovify.MarkovifyLite(
+        if not sentences_as_word_lists:
+            # 'empty' SentencesAsWordList could be [[]] or []; other strategies don't care. markovify rejects [] though
+            sentences_as_word_lists = [[]]
+
+        self.strategy = MarkovifyLite(
                 state_size=constants.DEFAULT_NGRAM_SIZE,
                 parsed_sentences=sentences_as_word_lists)
 
@@ -214,7 +221,7 @@ class TextMakerPyMarkovChain(BaseTextMaker):
 
     def __init__(self, *args, **kwargs):
         super(TextMakerPyMarkovChain, self).__init__(*args, **kwargs)
-        self.strategy = thirdparty._pymarkovchain.PyMarkovChainForked(
+        self.strategy = PyMarkovChainForked(
                 window=self.ngram_size,
                 # avoid surprising side effects: force clean slate. (see module docstring for rationale.)
                 db_file_path=None)
@@ -292,7 +299,7 @@ def create_text_maker(
         if callable(class_or_nickname):
             ATextMakerClass = class_or_nickname
         else:
-            raise ValueError('{!r} is not callable. please pass a valid class or nickname'.format(class_or_nickname))
+            raise ValueError('{!r} does not appear to be a valid class nor nickname'.format(class_or_nickname))
 
     if isinstance(sentence_tokenizer_nickname_or_instance, basestring):
         sentence_tokenizer_nickname = sentence_tokenizer_nickname_or_instance
@@ -303,7 +310,7 @@ def create_text_maker(
 
     text_maker = ATextMakerClass(ngram_size=ngram_size, sentence_tokenizer=sentence_tokenizer)
 
-    if input_text:
+    if input_text is not None:
         # SanitizedString 'memoizes' to avoid redundant sanitization - so it's no problem to call redundantly
         input_text = SanitizedString(input_text)
         text_maker.input_text(input_text)

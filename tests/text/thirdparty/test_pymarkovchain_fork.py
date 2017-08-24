@@ -16,9 +16,6 @@ from presswork.text.markov.thirdparty._pymarkovchain import PyMarkovChainForked
 
 SentencesTestCase = namedtuple('SentencesTestCase', ['text', 'phrase_in_each_sentence'])
 
-# TODO move this test case up to top level conftest as `def text_with_expected_phrase` and it is a UserString
-# so there is no confusion about what "type" it is in conftest vs the usage, it can just be used like a string,
-# but it does have metadata of .phrase_in_each_sentence, that can be used in asserts.
 TEST_CASE_ZEN_OF_PYTHON = SentencesTestCase(
         phrase_in_each_sentence="better than",
         text="""

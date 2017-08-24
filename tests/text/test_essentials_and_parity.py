@@ -6,6 +6,7 @@ import pytest
 import presswork.text.grammar
 from presswork.text import grammar
 from presswork.text import text_makers
+from presswork.utils import iter_flatten
 
 from tests import helpers
 
@@ -39,15 +40,34 @@ def all_text_makers(request):
     return all_text_makers
 
 
+def test_smoketest_common_phrase(each_text_maker):
+    """ smoketest: given input with same phrase in each sentence, expect that phrase in each output sentence.
+
+    :param each_text_maker: each text maker, injected by pytest from each_text_maker fixture.
+    """
+    text = ("Beautiful is better than ugly.\n" +
+            "Explicit is better than implicit.\n" +
+            "Simple is better than complex.\n" +
+            "Complex is better than complicated.\n" +
+            "Flat is better than nested.\n" +
+            "Sparse is better than dense.")
+
+    text_maker = each_text_maker
+    text_maker.input_text(text)
+    sentences = text_maker.make_sentences(1000)
+    for sentence in sentences:
+        assert "is better than" in " ".join(sentence)
+
+
 @pytest.mark.parametrize('ngram_size', range(2, 6))
 @pytest.mark.parametrize('sentence_tokenizer', [
     grammar.SentenceTokenizerPunkt(word_tokenizer=grammar.WordTokenizerTreebank()),
     grammar.SentenceTokenizerPunkt(word_tokenizer=grammar.WordTokenizerWhitespace()),
-    grammar.SentenceTokenizerWhitespace(word_tokenizer=grammar.WordTokenizerTreebank()),
     grammar.SentenceTokenizerMarkovify(word_tokenizer=grammar.WordTokenizerWhitespace()),
 ])
 def test_essential_properties_of_text_making(each_text_maker, ngram_size, sentence_tokenizer, text_any):
     """ confirm some essential known properties of text-making output, common to all the text makers
+
     :param each_text_maker: each text maker, injected by pytest from each_text_maker fixture.
     :param ngram_size: passed to text maker, here we test a 'reasonable' range (other cases test bigger range)
     :param sentence_tokenizer:  in practice the tokenizer choice is significant, however in test case we just try each.
@@ -68,9 +88,12 @@ def test_essential_properties_of_text_making(each_text_maker, ngram_size, senten
 
 @pytest.mark.parametrize('sentence_tokenizer', [
     grammar.SentenceTokenizerWhitespace(word_tokenizer=grammar.WordTokenizerWhitespace()),
+    grammar.SentenceTokenizerWhitespace(word_tokenizer=grammar.WordTokenizerTreebank()),
+    grammar.SentenceTokenizerMarkovify(word_tokenizer=grammar.WordTokenizerWhitespace()),
 ])
 def test_text_making_with_blankline_tokenizer(each_text_maker, sentence_tokenizer, text_newlines):
     """ covers some of same ground as test_essential_properties, but uses tokenizer that only works with line-separated
+
     :param text_newlines: 1 text at a time, but only fixture(s) where it is (mostly) newline separated
     """
     text_maker = each_text_maker
@@ -104,6 +127,18 @@ def test_easy_deterministic_cases_are_same_for_all_text_makers(all_text_makers, 
     # (temporary dict var is not necessary for assertion - is just for ease of debugging when something goes wrong)
     outputs_rejoined = {name: presswork.text.grammar.rejoin(output).strip() for name, output in outputs.items()}
     assert len(set(outputs_rejoined.values())) == 1
+
+
+def test_empty_and_null(each_text_maker, empty_or_null_string):
+    """ covers some of same ground as test_essential_properties, but uses tokenizer that only works with line-separated
+
+    :param text_newlines: 1 text at a time, but only fixture(s) where it is (mostly) newline separated
+    """
+    text_maker = each_text_maker
+    text_maker.input_text(empty_or_null_string)
+    sentences = text_maker.make_sentences(10)
+    assert sentences is not None
+    assert not filter(None, iter_flatten(sentences))
 
 
 def _test_self_ensure_test_would_fail_if_comparison_was_invalid(generated_tokens, input_tokenized):

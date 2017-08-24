@@ -21,7 +21,9 @@ from tests import helpers
 def runner():
     return CliRunner()
 
-def test_cli_large_input_from_file(runner, text_newlines):
+@pytest.mark.parametrize('ngram_size', range(2, 4))
+@pytest.mark.parametrize("strategy", ['markovify', 'pymc', 'crude'])
+def test_cli_large_input_from_file(runner, text_newlines, strategy, ngram_size):
     """ take in text fixture(s)... should be able to gobble up books no issue. from files by filename
     """
     input_filename = text_newlines.filename
@@ -29,7 +31,9 @@ def test_cli_large_input_from_file(runner, text_newlines):
 
     result = runner.invoke(cli.main, catch_exceptions=False, args=[
         '--input-filename', input_filename,
+        '--strategy', strategy,
         '--tokenize-strategy', 'whitespace',
+        '--ngram-size', ngram_size,
     ])
     output_text = result.output.strip()
     assert output_text
@@ -92,35 +96,24 @@ def test_cli_choose_strategy(runner):
         runner.invoke(cli.main, input=stdin, args=["--strategy", "unknown"], catch_exceptions=True)
         assert not mock.called
 
-    with patch(target="presswork.text.text_makers.TextMakerMarkovify.input_text") as mock:
+    with patch(target="presswork.text.text_makers.TextMakerMarkovify._lock", autospec=True) as mock:
+        # nitty gritty detail -- Due to quirk of Markovify and how we had to wrap it, mocking input_text()
+        # actually breaks it. general mock thing: if you mock an instance method, it'll no longer have side effects
+        # on instance(s). it's kind of like you'd turned them into a static method etc.
+        # but the good part is, in this test case, we don't care. just checking the wiring is there, from CLI to class.
+        # so, instead of mocking input_text, we can mock _lock & get same assurance, just different means
         result = runner.invoke(cli.main, input=stdin, args=["--strategy", "markovify"], catch_exceptions=False)
         assert result.exit_code == 0
         assert mock.called
 
+@pytest.mark.parametrize("strategy", ['markovify', 'pymc', 'crude'])
+def test_cli_empty_inputs(runner, strategy, empty_or_null_string):
+    """ confirm nothing too weird happens from empty inputs or inputs of control chars like null byte etc
 
-@pytest.mark.parametrize("stdin", [
-    "",
-    " ",
-    "  ",
-    "\n",
-    "\r",
-    "\n\r",
-    "\x20",
-    # TODO also have tests for null byte in test_parity etc., cos this totally broke things! should close closer to the unit level too.
-    "\x00",
-])
-def test_cli_empty_inputs(runner, stdin):
-    """ had a regression during development where for `crude` empty inputs were causing undefined behavior.
-
-    that should be tested closer to the unit that is at fault (tests for `crude`), but should be tested here too,
-    as the CLI shouldn't panic or wait on an infinite loop in these cases. (regardless of impl details)
-    :param runner:
-    :return:
+    (these inputs used to break the CLI! so this is a regression test.)
     """
-
-    # it'll hang if stdin is empty (haven't figure out exactly how to test that, but it doesn't seem crucial).
-    # but more definitely, if you do 'echo | presswork', it should return exit code 0 and no output.
-    result = runner.invoke(cli.main, input=stdin, catch_exceptions=False, args=['--strategy', 'crude'])
+    stdin = empty_or_null_string
+    result = runner.invoke(cli.main, input=stdin, catch_exceptions=False, args=['--strategy', strategy])
     assert result.exit_code == 0
     assert result.output.strip() == ''
 
