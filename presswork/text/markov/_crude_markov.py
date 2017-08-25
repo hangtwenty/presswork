@@ -1,20 +1,27 @@
 # -*- coding: utf-8 -*-
 """ Very basic homegrown implementation for fun & reference purposes.
 
-The implementations in `thirdparty` are preferable for nearly all use-cases!
+If you're looking to generate text, don't *start* here. Start with the `text_makers` module!
 
-Notable deficiencies of the 'crude' implementation:
-    - no maturity or battle testing, so haven't found the edge cases yet
-    - no optimization of memory usage: instead of storing #s of probabilities, raw lists are used
+    >>> model = crude_markov_chain([["A", "tokenized", "sentence."], ["A", "tokenized", "sentence."]])
+    >>> for word_sequence in iter_make_sentences(model, count=2):
+    ...     print " ".join([word.strip() for word in word_sequence if word.strip()])
+    A tokenized sentence.
+    A tokenized sentence.
+
+The implementations in `thirdparty` are preferable for most use cases. Disadvantages to this implementation:
+    * brand new & not as much battle-testing. fixed various edge cases, & things seem stable, but there could be more.
+    * no optimization of memory usage: instead of storing #s of probabilities, raw lists are used
         (Simplest Thing That Could Possibly Work, demos the essential algorithm, that's all)
-    - no optimization of lookups for performance boosts (contrast with jsvine/markovify)
+    * no optimization of lookups for performance boosts (contrast with jsvine/markovify)
 
 Why it's kept around:
-    - provides something to contrast the other implementations with, for testing and benchmarking
-    - provides a stripped-down reference implementation for understanding the algorithm (which is fundamentally similar
+    * provides something to contrast the other implementations with, for testing and benchmarking
+    * provides a stripped-down reference implementation for understanding the algorithm (which is fundamentally similar
     to the other implementations). Note, it's not a minimal 'pure' Markov Chain impl., rather it's a minimal
     'Markov Chain Text Generator' impl. It is defiinitely narrowed to the domain.
-    - this whole repository is just for fun, this file included
+    * this whole repository is just for fun, this file included :)
+
 """
 import logging
 import pprint

@@ -57,8 +57,8 @@ def main(ngram_size, strategy, tokenize_strategy, input_filename, input_encoding
 
     logger.debug("CLI invocation variable dump again: {}".format(locals()))
     text_maker = text_makers.create_text_maker(
-            class_or_nickname=strategy,
-            sentence_tokenizer_nickname_or_instance=tokenize_strategy,
+            strategy=strategy,
+            sentence_tokenizer=tokenize_strategy,
             input_text=SanitizedString(input_text),
             ngram_size=ngram_size)
 

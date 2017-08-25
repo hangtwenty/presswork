@@ -2,53 +2,69 @@
 """ building blocks for making new sentences+words from generative models; composition is encouraged (pun intended)
 
 -------------------------------------------------------------------------------
-usage notes -- TextMaker & subclasses are the main entry point
+usage notes -- TextMaker & subclasses are the main *entry* point
 ===============================================================================
 
     * most common usage is just create_text_maker(<text>). that uses default class, and default settings.
         but caller can also get them by a nickname (CLI needs this), or for more custom, directly instantiate classes.
-        (examples below put in tiny amount of input text so that output is same every time.)
 
+        >>> import logging; logging.disable(logging.CRITICAL)
         >>> from presswork.text.grammar import rejoin
-        >>> text_maker = create_text_maker(input_text="Foo is better than bar")
+        >>> text_maker = create_text_maker(input_text="Foo is better than bar.")  # use default strategy
         >>> result = text_maker.make_sentences(1)
-        >>> assert rejoin(result).startswith("Foo")
-        >>> text_maker = create_text_maker(input_text="Foo is better than bar", class_or_nickname="crude")
-        >>> result = text_maker.make_sentences(1)
-        >>> assert rejoin(result).startswith("Foo")
-        >>> text_maker = TextMakerCrude()
-        >>> assert text_maker.input_text("Foo is better than bar")
-        >>> result = text_maker.make_sentences(1)
-        >>> assert rejoin(result).startswith("Foo")
+        >>> rejoin(result)
+        u'Foo is better than bar.'
+        >>> text = "Simple is better than complex. But complex is better than complicated."
+        >>> text_maker = create_text_maker(input_text=text, strategy="crude")
+        >>> result = text_maker.make_sentences(1000)
+        >>> string = rejoin(result)  # TODO change to explicitly use NewlineJoinerStrategy for clarity
+        >>> assert all("better than" in line for line in string.splitlines())
+        >>> assert all(line.startswith("Simple") or line.startswith("But") for line in string.splitlines())
+        >>> from presswork.text.grammar import SentenceTokenizerPunkt, WordTokenizerWhitespace
+        >>> text_maker = TextMakerCrude(sentence_tokenizer=SentenceTokenizerPunkt())
+        >>> assert text_maker.input_text("Foo is better than bar.")
+        >>> assert "better than" in rejoin(text_maker.make_sentences(10))
+        >>> custom = SentenceTokenizerPunkt(word_tokenizer=WordTokenizerWhitespace())
+        >>> text_maker = TextMakerCrude(sentence_tokenizer=custom)
+        >>> assert text_maker.input_text("This text was input to a customized text maker")
+        >>> rejoin(text_maker.make_sentences(1))
+        u'This text was input to a customized text maker'
+        >>> # TODO demonstrate using other Joiners
 
-    * composition is encouraged for putting together further variants. this can be done on the fly;
+    * composition is encouraged for putting together further variants. this can be done on the fly.
         attributes such as TextMaker.strategy are *not* protected, so they can be accessed directly and customized.
 
-    * today this module only works with models that parse into 'sentences' and 'words', in natural languages
+    * natural language scope: minimal; assumption is that output will be supervised or edited.
+        this package works with models that consider 'sentences' and 'words', in natural languages
         that read from left to right, with whitespace separation between words. it should be possible to
-        go beyond just "English," but significant redesign would be needed for significantly differrent languages
+        go beyond just "English," but significant redesign would be needed for significantly different languages
 
 -------------------------------------------------------------------------------
-design notes -- TextMaker etc.
+design notes -- TextMaker and its collaborators
 ===============================================================================
 
     * favor composition.
-        TextMaker subclasses should be basically adapters, adapting other implementations to this common interface.
-        (so most methods *should* be forward methods to other strategies. should avoid having its own logic.)
+        * TextMaker subclasses should be basically adapters - adapting strategies to a common interface.
+            (so most methods *should* be forward methods to other strategies. should avoid having its own logic.)
+        * TextMaker subclasses should *not* implement their own parsing/unparsing (aka tokenizing/joining).
+            Should be done by collaborators, so that those collaborators can be mixed and matched. See `grammar`
 
     * as maintainer, I want to keep TextMaker interface restricted to essentials. this is to reduce scope,
             but also as an exercise to see what the common-denominator essential interface is.
-            if I end up extending beyond just markov chains, could there still be a useful common interface,
-            that takes in text, models it <somehow>, then outputs N sentences?
-        * dumping models to text and persisting - are NOT supported at this level for now. by design.
-            iff needed, the strategies can be accessed directly for their own persistence features.
-        * keeping TextMaker interface minimal also encourages separating the concerns for the other pieces,
+        * interface should work beyond just markov chains: can back by other text generation strategies,
+            anything that takes <tokenized text>, models it <any way it wants>, then outputs N sentences.
+            I think there's a space to explore, with "pipes and filters" working on streams of sentence and words.
+        * keeping TextMaker interface minimal encourages separating the concerns: collaborators, such as tokenizer
+            and joiner, can be mixed matched and composed
             which then supports more mix-and-match (experiment with different compositions of behaviors)
+        * avoiding support of filesystem persistence from the TextMaker level for now. each backend has its own
+            way of doing that, and it doesn't seem important for now to unify that behind an interface.
+            iff needed, the strategies can be accessed directly for their own save & load of models.
 
     * as *USER* I might find features are missing from TextMaker, but I these notes-to-self:
         * realize you can access 'strategy' attribute for customizations, or to overwrite with another instance.
-        * consider using the third-party libraries directly. or if you repeatedly do same things then consider
-            refactoring that into another strategy and/or subclass of this.
+        * consider using the third-party libraries directly. iff doing this repeatedly, then can refactor,
+            and wrap that up in another stategy or "preset"
 
 """
 import logging
@@ -101,7 +117,7 @@ class BaseTextMaker(object):
         if not sentence_tokenizer:
             logger.debug("no sentence_tokenizer argument given, defaulting to cheapest tokenizers")
             sentence_tokenizer = grammar.SentenceTokenizerWhitespace()
-        self._sentence_tokenizer = sentence_tokenizer
+        self.sentence_tokenizer = sentence_tokenizer
 
         self._locked = False
 
@@ -131,7 +147,7 @@ class BaseTextMaker(object):
             raise TextMakerIsLockedException("locked! has input_text() already been called? (can only be called once)")
 
         input_text = SanitizedString(input_text)
-        sentences_as_word_lists = self._sentence_tokenizer.tokenize(input_text)
+        sentences_as_word_lists = self.sentence_tokenizer.tokenize(input_text)
 
         self._input_text(sentences_as_word_lists)
         self._lock()
@@ -142,7 +158,7 @@ class BaseTextMaker(object):
         """ build a fresh model from this input text. (private; should contain the impl or adapter.)
 
         :param sentences_as_word_lists: list of lists. grammar.SentencesAsWordLists, or anything that quacks like that.
-            typically passed in from self._sentence_tokenizer.tokenize()
+            typically passed in from self.sentence_tokenizer.tokenize()
         """
         raise NotImplementedError()
 
@@ -176,15 +192,61 @@ class BaseTextMaker(object):
         """
         if self.is_locked:
             raise TextMakerIsLockedException('instance is locked! copying might be unsafe, aborting for max safety')
-        return self.__class__(ngram_size=self.ngram_size, sentence_tokenizer=self._sentence_tokenizer)
+        return self.__class__(ngram_size=self.ngram_size, sentence_tokenizer=self.sentence_tokenizer)
 
     def __repr__(self):
         return "{}(ngram_size={!r}, sentence_tokenizer={!r})".format(
-                self.__class__.__name__, self.ngram_size, self._sentence_tokenizer)
+                self.__class__.__name__, self.ngram_size, self.sentence_tokenizer)
+
+
+class TextMakerPyMarkovChain(BaseTextMaker):
+    """ text maker using `PyMarkovChainFork` strategy, comparable performance to Markovify
+
+    Plays nice with Unicode
+    """
+    NICKNAME = 'pymc'
+
+    def __init__(self, *args, **kwargs):
+        super(TextMakerPyMarkovChain, self).__init__(*args, **kwargs)
+        self.strategy = PyMarkovChainForked(
+                window=self.ngram_size,
+                db_file_path=None)
+
+    def _input_text(self, sentences_as_word_lists):
+        self.strategy.database_init(sentences_as_word_lists)
+
+    def make_sentences(self, count):
+        result = self.strategy.make_sentences_list(number=count)
+        return grammar.SentencesAsWordLists(result)
+
+
+class TextMakerCrude(BaseTextMaker):
+    """ text maker using homegrown 'crude' implementation
+
+    For most usages, the other strategies should be preferred. (why keep it around? see _crude_markov module header.)
+
+    Plays nice with Unicode though.
+    """
+    NICKNAME = 'crude'
+
+    def __init__(self, *args, **kwargs):
+        super(TextMakerCrude, self).__init__(*args, **kwargs)
+        self.strategy = _crude_markov
+        self._model = {}
+
+    def _input_text(self, sentences_as_word_lists):
+        self._model = self.strategy.crude_markov_chain(sentences_as_word_lists, ngram_size=self.ngram_size)
+
+    def make_sentences(self, count):
+        iter_sentences_of_words = self.strategy.iter_make_sentences(
+                crude_markov_model=self._model, ngram_size=self.ngram_size, count=count)
+        return grammar.SentencesAsWordLists(iter_sentences_of_words)
 
 
 class TextMakerMarkovify(BaseTextMaker):
     """ text maker using `markovify` lib (behind an adapter). this is the first strategy to reach for!
+
+    YMMV when passing Unicode to Markovify.
     """
     NICKNAME = 'markovify'
 
@@ -193,6 +255,14 @@ class TextMakerMarkovify(BaseTextMaker):
         # The way Markovify is set up, initializing isn't very useful or clean unless you already have your input text
         # ... so we don't instantiate strategy here, instead we leave it None - lazy until _input_text() is called
         self.strategy = None
+
+    def input_text(self, input_text):
+        """ mostly just call super(), but adding a hook to log a warning about Markovify's unicode status
+        """
+        if isinstance(input_text, unicode) or (hasattr(input_text, "data") and isinstance(input_text.data, unicode)):
+            logger.warning("Markovify does not officially support unicode, YMMV! "
+                           "Markovify/unidecode may strip or replace your unicode with ASCII. ".format(input_text))
+        return super(TextMakerMarkovify, self).input_text(input_text)
 
     def _input_text(self, sentences_as_word_lists):
         # markovify is strict about its input being exactly `list` of `list` (duck typing not allowed), so we convert.
@@ -214,53 +284,11 @@ class TextMakerMarkovify(BaseTextMaker):
         return grammar.SentencesAsWordLists(sentences)
 
 
-class TextMakerPyMarkovChain(BaseTextMaker):
-    """ text maker using `PyMarkovChainFork` strategy. less performant than markovify, but plays nice with unicode
-    """
-    NICKNAME = 'pymc'
-
-    def __init__(self, *args, **kwargs):
-        super(TextMakerPyMarkovChain, self).__init__(*args, **kwargs)
-        self.strategy = PyMarkovChainForked(
-                window=self.ngram_size,
-                # avoid surprising side effects: force clean slate. (see module docstring for rationale.)
-                db_file_path=None)
-
-    def _input_text(self, sentences_as_word_lists):
-        self.strategy.database_init(sentences_as_word_lists)
-
-    def make_sentences(self, count):
-        result = self.strategy.make_sentences_list(number=count)
-        return grammar.SentencesAsWordLists(result)
-
-
-class TextMakerCrude(BaseTextMaker):
-    """ text maker using homegrown 'crude' implementation
-
-    For most usages, the other strategies should be preferred. (why keep it around? see _crude_markov module header.)
-    """
-    NICKNAME = 'crude'
-
-    def __init__(self, *args, **kwargs):
-        super(TextMakerCrude, self).__init__(*args, **kwargs)
-        # In the case of _crude_markov it's implemented with just functions on a module (not a class)
-        self.strategy = _crude_markov
-        self._model = {}
-
-    def _input_text(self, sentences_as_word_lists):
-        self._model = self.strategy.crude_markov_chain(sentences_as_word_lists, ngram_size=self.ngram_size)
-
-    def make_sentences(self, count):
-        iter_sentences_of_words = self.strategy.iter_make_sentences(
-                crude_markov_model=self._model, ngram_size=self.ngram_size, count=count)
-        return grammar.SentencesAsWordLists(iter_sentences_of_words)
-
-
 # ====================================================================================================
 
 _classes_by_nickname = {klass.NICKNAME: klass for klass in BaseTextMaker.__subclasses__()}
-CLASS_NICKNAMES = _classes_by_nickname.keys()
-DEFAULT_TEXT_MAKER_NICKNAME = "crude"  # TODO change the default to markovify
+TEXT_MAKER_NICKNAMES = _classes_by_nickname.keys()
+DEFAULT_TEXT_MAKER_NICKNAME = "markovify"
 
 
 def _get_text_maker_class(name_or_nickname):
@@ -277,8 +305,8 @@ def _get_text_maker_class(name_or_nickname):
 
 
 def create_text_maker(
-        class_or_nickname=DEFAULT_TEXT_MAKER_NICKNAME,
-        sentence_tokenizer_nickname_or_instance=None,
+        strategy=DEFAULT_TEXT_MAKER_NICKNAME,
+        sentence_tokenizer=None,
         input_text=None,
         ngram_size=constants.DEFAULT_NGRAM_SIZE, ):
     """ convenience factory to just "gimme a text maker" without knowing exact module layout. nicknames supported.
@@ -287,28 +315,31 @@ def create_text_maker(
     little to no special logic in the constructors.
 
     :param input_text: the input text to load into the TextMaker class. (if not given, you can load it later.)
-    :param class_or_nickname: (optional) specific nickname of class to use e.g. 'crude', 'pymc' 'markovify'
+    :param strategy: (optional) specific nickname of class to use e.g. 'crude', 'pymc' 'markovify'
         can also just pass in an exact class. if not given, will use the default.
-    :param sentence_tokenizer_nickname_or_instance: i.e. 'nltk', 'whitespace', or specific customized instance.
+    :param sentence_tokenizer: i.e. 'nltk', 'whitespace', or specific customized instance.
         if not given, does not override, and the TextMaker class will use its default.
     """
+    text_maker_kwargs = {}
 
-    if isinstance(class_or_nickname, basestring):
-        ATextMakerClass = _get_text_maker_class(name_or_nickname=class_or_nickname)
-    else:
-        if callable(class_or_nickname):
-            ATextMakerClass = class_or_nickname
+    try:
+        ATextMakerClass = _get_text_maker_class(name_or_nickname=strategy)
+    except KeyError:
+        if callable(strategy):
+            ATextMakerClass = strategy
         else:
-            raise ValueError('{!r} does not appear to be a valid class nor nickname'.format(class_or_nickname))
+            raise ValueError('{!r} does not appear to be a valid class nor nickname'.format(strategy))
 
-    if isinstance(sentence_tokenizer_nickname_or_instance, basestring):
-        sentence_tokenizer_nickname = sentence_tokenizer_nickname_or_instance
-        ASentenceTokenizerClass = grammar.tokenizer_classes_by_nickname[sentence_tokenizer_nickname]
-        sentence_tokenizer = ASentenceTokenizerClass()
-    else:
-        sentence_tokenizer = sentence_tokenizer_nickname_or_instance
+    if sentence_tokenizer:
+        try:
+            ASentenceTokenizerClass = grammar.tokenizer_classes_by_nickname[sentence_tokenizer]
+            sentence_tokenizer = ASentenceTokenizerClass()
+        except KeyError:
+            sentence_tokenizer = sentence_tokenizer
 
-    text_maker = ATextMakerClass(ngram_size=ngram_size, sentence_tokenizer=sentence_tokenizer)
+        text_maker_kwargs["sentence_tokenizer"] = sentence_tokenizer
+
+    text_maker = ATextMakerClass(ngram_size=ngram_size, **text_maker_kwargs)
 
     if input_text is not None:
         # SanitizedString 'memoizes' to avoid redundant sanitization - so it's no problem to call redundantly
