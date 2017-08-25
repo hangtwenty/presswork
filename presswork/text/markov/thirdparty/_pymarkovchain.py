@@ -23,7 +23,7 @@ from presswork import constants
 try:
     # try to use cPickle for better performance (python2)
     import cPickle as pickle
-except ImportError:
+except ImportError: # pragma: no cover
     import pickle
 
 from collections import defaultdict
@@ -90,7 +90,7 @@ class PyMarkovChainForked(object):
             try:
                 with open(self.db_file_path, 'rb') as dbfile:
                     self.db = pickle.load(dbfile)
-            except (IOError, ValueError):
+            except (IOError, ValueError):  # pragma: no cover
                 logging.debug('db_file_path given, but unreadable (not found, or corrupt), using empty database')
 
     @property
@@ -173,7 +173,9 @@ class PyMarkovChainForked(object):
         if last_words != self._special_ngram:
             while last_words not in self.db:
                 last_words = last_words[1:]
-                if not last_words:
+                # I don't feel guilty putting "pragma: no cover" on next line as it is a failsafe;
+                # my tests don't hit it, and maybe it never gets hit, but it's not *in*correct behavior
+                if not last_words:  # pragma: no cover
                     return SPECIAL_TOKEN
         probmap = self.db[last_words]
         sample = random.random()

@@ -9,6 +9,10 @@ class Disabled(ValueError):
     """ markovify adapter disables some features to avoid confusion and keep things tight across `presswork`
     """
 
+class NotYetImplementedInAdapter(NotImplementedError):
+    """ markovify adapter isn't yet ready to handle these features (need some careful work to integrate)
+    """
+
 
 class MarkovifyLite(markovify.Text):
     """ modifies markovify.Text behavior (using public API). mainly disabling some 'eager' behaviors.
@@ -31,7 +35,8 @@ class MarkovifyLite(markovify.Text):
         # Overriding, satisfying same needs, but adapting to our purposes
 
         if input_text:
-            raise Disabled("disabled in this adapter; pass `parsed_sentences` arg instead (tokenize beforehand)")
+            raise Disabled(
+                    "disabled in this adapter; tokenize beforehand, pass to `parsed_sentences` in constructor")
 
         self.state_size = state_size
         self.parsed_sentences = parsed_sentences
@@ -63,7 +68,7 @@ class MarkovifyLite(markovify.Text):
         return words
 
     def generate_corpus(self, text):
-        raise Disabled("disabled in this adapter; pass `parsed_sentences` arg instead (parse beforehand)")
+        raise Disabled("disabled in this adapter; tokenize beforehand, pass to `parsed_sentences` in constructor")
 
     def make_sentence(self, init_state=None, **kwargs):
         kwargs['test_output'] = kwargs.get('test_output', False)
@@ -73,4 +78,4 @@ class MarkovifyLite(markovify.Text):
         """ used by 'assessing the noevelty of generated sentences', very cool feature, but disabled for now
         """
         # this code should be unreachable unless somebody really tries (since test_output=False in make_sentence)
-        raise Disabled("disabled in this adapter for now")
+        raise NotYetImplementedInAdapter("not yet implemented in presswork adapter around markovify")

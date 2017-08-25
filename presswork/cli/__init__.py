@@ -31,7 +31,7 @@ from presswork.text import text_makers
 @click.option('-s', '--strategy',
               type=click.Choice(['markovify', 'pymc', 'crude']),
               help="which strategy to use for markov chain model & text generation. "
-                   "'markovify' is the most performant and best for most purposes. "
+                   "'markovify' is a good default choice. "
                    "'pymc' is based on PyMarkovChain. "
                    "'crude' is crude and limited. ",
               default="markovify")

@@ -4,7 +4,7 @@
     >>> list(WordTokenizerWhitespace().tokenize('foo bar baz'))
     ['foo', 'bar', 'baz']
     >>> SentenceTokenizerNLTK().tokenize('Foo bar baz. Another sentence in the input.').unwrap()
-    [[u'Foo', u'bar', u'baz', u'.'], [u'Another', u'sentence', u'in', u'the', u'input', u'.']]
+    [['Foo', 'bar', 'baz', '.'], ['Another', 'sentence', 'in', 'the', 'input', '.']]
     >>> # TODO show the joiners too
 
 ------------------------------------------------------------------------------------
@@ -83,13 +83,10 @@ class BaseWordTokenizer(object):
         :type text: basestring
         :rtype: WordList
         """
-        raise NotImplementedError()
+        raise NotImplementedError()  # pragma: no cover
 
-    def __call__(self, *args, **kwargs):
-        return self.tokenize(*args, **kwargs)
-
-    def __repr__(self):
-        return "<{}>".format(self.__class__.__name__)
+    def __repr__(self):  # pragma: no cover
+        return "{}()".format(self.__class__.__name__)
 
 
 class BaseSentenceTokenizer(object):
@@ -113,10 +110,14 @@ class BaseSentenceTokenizer(object):
         (this shouldn't depend on word_tokenizer)
         :rtype: list
         """
-        raise NotImplementedError()
+        raise NotImplementedError()  # pragma: no cover
 
     @property
     def word_tokenizer(self):
+        """
+        >>> import pytest
+        >>> with pytest.raises(ValueError): BaseSentenceTokenizer(word_tokenizer=None).word_tokenizer.tokenize()
+        """
         if not self._word_tokenizer:
             raise ValueError("word_tokenizer not configured!")
         return self._word_tokenizer
@@ -125,11 +126,8 @@ class BaseSentenceTokenizer(object):
     def word_tokenizer(self, word_tokenizer):
         self._word_tokenizer = word_tokenizer
 
-    def __call__(self, *args, **kwargs):
-        return self.tokenize(*args, **kwargs)
-
-    def __repr__(self):
-        return "<{}>".format(self.__class__.__name__)
+    def __repr__(self):  # pragma: no cover
+        return "{}(word_tokenizer={!r})".format(self.__class__.__name__, self.word_tokenizer)
 
 
 class WordTokenizerWhitespace(BaseWordTokenizer):
@@ -197,6 +195,11 @@ class WordTokenizerTreebank(BaseWordTokenizer):
         self.strategy = nltk.TreebankWordTokenizer()
 
     def tokenize(self, text):
+        """
+        >>> # just getting coverage for .unwrap() line, which doesn't end up exercised by other tests
+        >>> WordTokenizerTreebank().tokenize(SanitizedString("Hello there!!!"))
+        [u'Hello', u'there', u'!', u'!', u'!']
+        """
         if hasattr(text, 'unwrap'):
             text = text.unwrap()
         return WordList(self.strategy.tokenize(text))
@@ -250,6 +253,11 @@ class WordList(UserList):
         self.sanity_check()
 
     def sanity_check(self):
+        """
+        >>> import pytest
+        >>> assert WordList(["some", "words"])
+        >>> with pytest.raises(ValueError): WordList([["oops", "you", "passed..."], ["a", "sentence", "list"]])
+        """
         if self.data:
             if not isinstance(self.data[0], basestring):
                 raise ValueError("should be list of strings")
@@ -268,6 +276,12 @@ class SentencesAsWordLists(UserList):
         self.sanity_check()
 
     def sanity_check(self):
+        """
+        >>> import pytest
+        >>> assert SentencesAsWordLists([["oops", "you", "passed..."], ["a", "sentence", "list"]])
+        >>> with pytest.raises(ValueError): SentencesAsWordLists(["oops", "it's", "a", "flat", "list", "of", "words"])
+        >>> with pytest.raises(ValueError): WordList([["oops", "you", "passed..."], ["a", "sentence", "list"]])
+        """
         if self.data:
             if isinstance(self.data[0], basestring):
                 raise ValueError("should be list of lists, appears to be list of strings")
@@ -280,27 +294,6 @@ class SentencesAsWordLists(UserList):
             return [word_list.unwrap() for word_list in self.data]
         except AttributeError:
             return [word_list for word_list in self.data]
-
-
-
-# TODO delete this method
-# @DeprecationWarning
-def crude_split_sentences(text):
-    """ do basic split-up of 'sentences' returning tuple.
-    """
-    return tuple(SentenceTokenizerWhitespace()._tokenize_to_sentence_strings(text))
-
-
-# TODO delete this method
-# @DeprecationWarning
-def crude_split_words(text):
-    """ do basic split-up of words, returning tuple
-
-        >>> newline = chr(10)
-        >>> crude_split_words("foo bar baz" + newline * 10 + " quux " + newline * 20000)
-        ('foo', 'bar', 'baz', 'quux')
-    """
-    return tuple(text.split())
 
 
 # FIXME delete this method, should be using Joiners

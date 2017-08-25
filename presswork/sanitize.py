@@ -46,9 +46,10 @@ class SanitizedString(UserString):
         >>> assert SanitizedString(null_byte) == ''
         >>> assert SanitizedString(null_byte + "hello") == "hello"
         >>> assert SanitizedString(SanitizedString(SanitizedString(SanitizedString(u'idempotent')))) == u'idempotent'
-        >>> hi_san = SanitizedString('hi')
+        >>> cleaned = SanitizedString('hi')
         >>> # confirm we avoid redundant sanitization: we would expect the internal string to be exact same object
-        >>> assert SanitizedString(SanitizedString(hi_san)).data is hi_san.data
+        >>> assert cleaned.data is SanitizedString(SanitizedString(SanitizedString(cleaned))).data
+        >>> assert unicode(SanitizedString(u"unicøde")) == u"unicøde"
     """
 
     # noinspection PyMissingConstructor

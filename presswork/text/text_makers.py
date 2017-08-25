@@ -117,7 +117,11 @@ class BaseTextMaker(object):
         if not sentence_tokenizer:
             logger.debug("no sentence_tokenizer argument given, defaulting to cheapest tokenizers")
             sentence_tokenizer = grammar.SentenceTokenizerWhitespace()
-        self.sentence_tokenizer = sentence_tokenizer
+
+        if callable(getattr(sentence_tokenizer, "tokenize", None)):
+            self.sentence_tokenizer = sentence_tokenizer
+        else:
+            raise ValueError("sentence_tokenizer must implement a tokenize() method")
 
         self._locked = False
 
@@ -129,7 +133,7 @@ class BaseTextMaker(object):
             (Fun fact: The `set()` of tokens generated, will be a subset of the tokens from the input.)
         :rtype: grammar.SentencesAsWordLists
         """
-        return NotImplementedError()
+        return NotImplementedError()  # pragma: no cover
 
     def input_text(self, input_text):
         """ build a fresh model from input text. (does not generate text - call make_sentences() to generate text.)
@@ -160,7 +164,7 @@ class BaseTextMaker(object):
         :param sentences_as_word_lists: list of lists. grammar.SentencesAsWordLists, or anything that quacks like that.
             typically passed in from self.sentence_tokenizer.tokenize()
         """
-        raise NotImplementedError()
+        raise NotImplementedError()  # pragma: no cover
 
     @property
     def ngram_size(self):

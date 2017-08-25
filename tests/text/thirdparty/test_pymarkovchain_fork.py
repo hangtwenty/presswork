@@ -34,7 +34,7 @@ def pymc(tmpdir):
     return pymc
 
 
-tokenize = grammar.SentenceTokenizerWhitespace()
+tokenize = grammar.SentenceTokenizerWhitespace().tokenize
 
 
 @pytest.mark.parametrize(('test_case'), [TEST_CASE_ZEN_OF_PYTHON])

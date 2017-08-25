@@ -59,8 +59,8 @@ def crude_markov_chain(sentences_as_word_lists, ngram_size=constants.DEFAULT_NGR
 
             try:
                 next_word = words_with_padding[i + ngram_size]
-            except IndexError:
-                # (This failsafe should no longer be necessary, but leaving it anyways; it is not *in*correct.)
+            except IndexError:  # pragma: no cover
+                # (This fallback should no longer be necessary, but leaving it anyways; it is not *in*correct.)
                 next_word = END_SYMBOL
 
             # Re: memory usage -- see note in module docstring. (left unoptimized)
@@ -69,7 +69,7 @@ def crude_markov_chain(sentences_as_word_lists, ngram_size=constants.DEFAULT_NGR
             else:
                 model[ngram].append(next_word)
 
-    if logger.level == logging.DEBUG:
+    if logger.level == logging.DEBUG:  # pragma: no cover
         try:
             logger.debug(u'model=\n{}'.format(pprint.pformat(model, width=2)))
         except:

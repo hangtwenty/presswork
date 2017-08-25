@@ -6,6 +6,7 @@ import pytest
 import presswork.text.grammar
 from presswork.text import grammar
 from presswork.text import text_makers
+from presswork.text.markov import _crude_markov
 from presswork.utils import iter_flatten
 
 from tests import helpers
@@ -143,6 +144,9 @@ def test_locked_after_input_text(each_text_maker):
     with pytest.raises(text_makers.TextMakerIsLockedException):
         text_maker.input_text("This should not be loaded")
 
+    with pytest.raises(text_makers.TextMakerIsLockedException):
+        text_maker.clone()  # can't clone() after input either, just in case that could cause astonishing state bugs
+
     output = text_maker.make_sentences(50)
 
     assert "This" not in presswork.text.grammar.rejoin(output)
@@ -180,3 +184,44 @@ def test_avoid_pollution_between_instances(each_text_maker):
 
     assert 'Input' in str(text_maker_2.make_sentences(10))
     assert 'Input' not in str(text_maker_1.make_sentences(10))
+
+
+def test_factory():
+    """ this already gets exercised in other tests, for the most part, but let's cover a few more cases
+    """
+    assert text_makers.create_text_maker()
+
+    # some plain ol lookup errors
+    with pytest.raises(KeyError):
+        text_makers._get_text_maker_class("invalid_nickname")
+
+    with pytest.raises(ValueError):
+        text_makers.create_text_maker("invalid_nickname")
+
+    # valid - passing in a tokenizer, which is just defined as something that implements tokenize()
+    class SomeCustomTokenizer(object):
+
+        def tokenize(self, text):
+            return [[word.strip() for word in sent.split()] for sent in text.splitlines()]
+
+    text_input = "woohoo that tokenizer quacks like a duck"
+    tm = text_makers.create_text_maker(sentence_tokenizer=SomeCustomTokenizer())
+    tm.input_text("woohoo that tokenizer quacks like a duck")
+    assert grammar.rejoin(tm.make_sentences(1)) == text_input
+
+    # not valid - passing in some other callable
+    with pytest.raises(ValueError):
+        text_makers.create_text_maker(sentence_tokenizer=int)
+
+
+def test_mismatched_ngram_size_for_crude():
+    # quick test for a failure mode that is important, but wasn't covered before
+    ngram_size = 2
+    tokenize = grammar.SentenceTokenizerWhitespace().tokenize
+    model = _crude_markov.crude_markov_chain(
+            sentences_as_word_lists=tokenize("foo bar baz"),
+            ngram_size=ngram_size)
+
+    with pytest.raises(ValueError):
+        generator = _crude_markov.iter_make_sentences(model, count=10, ngram_size=ngram_size + 1)
+        generator.next()
