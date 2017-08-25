@@ -45,7 +45,7 @@ def crude_markov_chain(sentences_as_word_lists, ngram_size=constants.DEFAULT_NGR
 
     for word_sequence in sentences_as_word_lists:
 
-        words_with_padding = ngram_for_sentence_start(ngram_size) + word_sequence + (END_SYMBOL,)
+        words_with_padding = ngram_for_sentence_start(ngram_size) + tuple(word_sequence) + (END_SYMBOL,)
 
         for i in xrange(0, len(word_sequence) + 1):
             ngram = tuple(words_with_padding[i:(i + ngram_size)])

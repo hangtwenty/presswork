@@ -1,6 +1,6 @@
+# -*- coding: utf-8 -*-
 """ test TextMaker variants - esp. essential properties of markov chain text generators, and fundamental parity
 """
-# -*- coding: utf-8 -*-
 import pytest
 
 import presswork.text.grammar
@@ -9,35 +9,6 @@ from presswork.text import text_makers
 from presswork.utils import iter_flatten
 
 from tests import helpers
-
-
-@pytest.fixture(params=text_makers.CLASS_NICKNAMES)
-def each_text_maker(request):
-    """ get 1 text maker instance (doesn't load input_text; so, test cases control input_text, ngram_size)
-
-    the fixture is parametrized so that test cases will get 'each' text_maker, 1 per test case
-
-    this fixture should be used in tests where the criteria isn't specific to the text maker implementation,
-    such as these essentials/parity texts.
-    """
-    name = request.param
-    text_maker = text_makers.create_text_maker(class_or_nickname=name)
-    return text_maker
-
-
-@pytest.fixture()
-def all_text_makers(request):
-    """ get instances of ALL text maker variants (doesn't load input_text; test cases control input_text, ngram_size)
-
-    this fixture should be used when we want multiple text maker varieties in one test, such as to confirm that
-    under valid circumstances they behave similar (or same) for similar inputs
-    """
-    all_text_makers = []
-    for name in text_makers.CLASS_NICKNAMES:
-        text_maker = text_makers.create_text_maker(class_or_nickname=name)
-        all_text_makers.append(text_maker)
-
-    return all_text_makers
 
 
 def test_smoketest_common_phrase(each_text_maker):
@@ -63,7 +34,6 @@ def test_smoketest_common_phrase(each_text_maker):
 @pytest.mark.parametrize('sentence_tokenizer', [
     grammar.SentenceTokenizerPunkt(word_tokenizer=grammar.WordTokenizerTreebank()),
     grammar.SentenceTokenizerPunkt(word_tokenizer=grammar.WordTokenizerWhitespace()),
-    grammar.SentenceTokenizerMarkovify(word_tokenizer=grammar.WordTokenizerWhitespace()),
 ])
 def test_essential_properties_of_text_making(each_text_maker, ngram_size, sentence_tokenizer, text_any):
     """ confirm some essential known properties of text-making output, common to all the text makers
@@ -77,6 +47,7 @@ def test_essential_properties_of_text_making(each_text_maker, ngram_size, senten
     """
     text_maker = each_text_maker
     text_maker.ngram_size = ngram_size
+    text_maker.sentence_tokenizer = sentence_tokenizer
 
     _input_tokenized = text_maker.input_text(text_any)
 
@@ -89,7 +60,7 @@ def test_essential_properties_of_text_making(each_text_maker, ngram_size, senten
 @pytest.mark.parametrize('sentence_tokenizer', [
     grammar.SentenceTokenizerWhitespace(word_tokenizer=grammar.WordTokenizerWhitespace()),
     grammar.SentenceTokenizerWhitespace(word_tokenizer=grammar.WordTokenizerTreebank()),
-    grammar.SentenceTokenizerMarkovify(word_tokenizer=grammar.WordTokenizerWhitespace()),
+    grammar.SentenceTokenizerMarkovify(),
 ])
 def test_text_making_with_blankline_tokenizer(each_text_maker, sentence_tokenizer, text_newlines):
     """ covers some of same ground as test_essential_properties, but uses tokenizer that only works with line-separated
@@ -97,6 +68,7 @@ def test_text_making_with_blankline_tokenizer(each_text_maker, sentence_tokenize
     :param text_newlines: 1 text at a time, but only fixture(s) where it is (mostly) newline separated
     """
     text_maker = each_text_maker
+    text_maker.sentence_tokenizer = sentence_tokenizer
 
     _input_tokenized = text_maker.input_text(text_newlines)
     sentences = text_maker.make_sentences(200)
@@ -138,6 +110,11 @@ def test_empty_and_null(each_text_maker, empty_or_null_string):
     text_maker.input_text(empty_or_null_string)
     sentences = text_maker.make_sentences(10)
     assert sentences is not None
+
+    # how each text maker handles empty strings or no-op whitespace - is un-defined, and intentionally "liberal,"
+    # basically deferring any cleanup etc until final re-join. so,
+    # each text maker is free to return [[],[],[]] vs [[''],['']] etc, BUT... we *DO* have an assertable expectation
+    # in this case, that when you flatten-and-filter, it should reduce to empty i.e. []
     assert not filter(None, iter_flatten(sentences))
 
 

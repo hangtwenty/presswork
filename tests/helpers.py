@@ -52,8 +52,8 @@ class WordSetComparison(object):
         if isinstance(generated_tokens, basestring) or isinstance(input_tokenized, basestring):
             raise ValueError('please only pass already-tokenized items for comparison.')
 
-        self._generated_tokens = iter_flatten(generated_tokens)
-        self._input_tokenized = iter_flatten(input_tokenized)
+        self._generated_tokens = list(iter_flatten(generated_tokens))
+        self._input_tokenized = list(iter_flatten(input_tokenized))
 
         self.set_of_generated_words = set(self._clean_words(self._generated_tokens))
         self.set_of_input_words = set(self._clean_words(self._input_tokenized))

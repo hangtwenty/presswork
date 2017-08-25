@@ -1,8 +1,7 @@
-#!/usr/bin/env python
 # -*- coding: utf-8 -*-
-""" tests directly against PyMarkovChainFork class (as opposed to the PyMarkovChainTextMaker class, which is preferable)
+""" tests directly against PyMarkovChainFork class (as opposed to the PyMarkovChainTextMaker class that wraps it)
 
-just a couple because of forking the lib. want to give it smoketests on its own, aside from other
+just a couple cases because of forking the lib. want to give it smoketests on its own, aside from other
 tests related to TextMaker variants. (if something went wrong, it would help pinpoint.)
 """
 import os
@@ -16,16 +15,15 @@ from presswork.text.markov.thirdparty._pymarkovchain import PyMarkovChainForked
 
 SentencesTestCase = namedtuple('SentencesTestCase', ['text', 'phrase_in_each_sentence'])
 
+# same thing is repeated in test_essentials file, but leaving it redundant, it's good to have an obvious case sometimes
 TEST_CASE_ZEN_OF_PYTHON = SentencesTestCase(
         phrase_in_each_sentence="better than",
-        text="""
-Beautiful is better than ugly.
-Explicit is better than implicit.
-Simple is better than complex.
-Complex is better than complicated.
-Flat is better than nested.
-Sparse is better than dense.
-""")
+        text=("Beautiful is better than ugly.\n" +
+              "Explicit is better than implicit.\n" +
+              "Simple is better than complex.\n" +
+              "Complex is better than complicated.\n" +
+              "Flat is better than nested.\n" +
+              "Sparse is better than dense."))
 
 
 @pytest.fixture
@@ -35,7 +33,9 @@ def pymc(tmpdir):
     pymc = PyMarkovChainForked(db_file_path=db_file_path)
     return pymc
 
+
 tokenize = grammar.SentenceTokenizerWhitespace()
+
 
 @pytest.mark.parametrize(('test_case'), [TEST_CASE_ZEN_OF_PYTHON])
 def test_high_level_behavior(pymc, test_case):

@@ -61,6 +61,11 @@ class SanitizedString(UserString):
                 s = sanitizer(s)
             self.data = s
 
+    def unwrap(self):
+        """ return internal string (useful when we need to pass to something that is over-strict about type-checking)
+        """
+        return self.data
+
     def __unicode__(self):
         return unicode(self.data)
 
