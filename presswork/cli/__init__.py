@@ -62,7 +62,7 @@ def main(ngram_size, strategy, tokenize_strategy, input_filename, input_encoding
             input_text=SanitizedString(input_text),
             ngram_size=ngram_size)
 
-    # TODO over here we shouldn't know about sentences and joining. when text maker has a make_text method, switch to that
+    # TODO here, we should either not "know" about sentences & joining, or it should be selectable as CLI arg
     sentences = text_maker.make_sentences(count)
     result = grammar.rejoin(sentences)
 

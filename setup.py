@@ -15,18 +15,16 @@ HERE = os.path.abspath(os.path.dirname(__file__))
 with codecs.open('README.md', encoding='utf-8') as readme_file:
     readme = readme_file.read()
 
-# TODO(hangtwenty) after dust settles from refactor, pip --upgrade some things, re-test, and re-pin
-NLTK_VERSION='3.0.2'
+NLTK_VERSION='3.2.4'
 
 _requirements_cli = [
     'Click>=6.0',
 ]
 
 _requirements_server = [
-    # TODO(hangtwenty) pin these
-    'Flask',
-    'Flask-WTF',
-    'wtforms',
+    'Flask==0.12.2',
+    'Flask-WTF==0.14.2',
+    'WTForms==2.1',
 ]
 
 # these could all be split up, but really purpose of 'Presswork' is to bring a couple of things together into an
@@ -80,7 +78,7 @@ class InstallWithNLTKCorpora(SetuptoolsInstallCommand):
 
 setup(
     name='presswork',
-    version='0.2.3',
+    version='0.2.5',
     description="Instant gratification sandbox for text generation using Markov Chains. "
                 "A little Flask app (only for local use), and a CLI that supports piping. "
                 "Comes with a couple of Markov Chain implementations - pluggable. Have fun!",

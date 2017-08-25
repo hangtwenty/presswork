@@ -6,12 +6,10 @@ import uuid
 
 from flask import Flask, render_template
 
-# noinspection PyUnresolvedReferences
-from flask.ext.wtf import Form
-# noinspection PyUnresolvedReferences
-from flask.ext.wtf.csrf import CsrfProtect
+from flask_wtf import FlaskForm
+from flask_wtf.csrf import CSRFProtect
 
-from wtforms import validators, StringField, IntegerField, SelectField, ValidationError
+from wtforms import validators, StringField, IntegerField, ValidationError
 
 from presswork import constants
 from presswork.sanitize import SanitizedString
@@ -21,42 +19,32 @@ from presswork.text import text_makers
 from presswork.flask_app import template_filters
 
 app = Flask(__name__)
-csrf = CsrfProtect(app=app)
+csrf = CSRFProtect(app=app)
 app.config['SECRET_KEY'] = str(uuid.uuid4())
 
 # template filters are a safer way to convert whitespace to HTML, without turning off escaping
 app.add_template_filter(template_filters.newlines_to_br, name="newlines_to_br")
 app.add_template_filter(template_filters.tabs_to_nbsp, name="tabs_to_nbsp")
 
-
 logger = logging.getLogger('presswork')
 
-# TODO handle these upgrades/deprecation warnings
-# presswork/flask_app/app.py:10: ExtDeprecationWarning: Importing flask.ext.wtf is deprecated, use flask_wtf instead.
-#   from flask.ext.wtf import Form
-# presswork/flask_app/app.py:12: ExtDeprecationWarning: Importing flask.ext.wtf.csrf is deprecated, use flask_wtf.csrf instead.
-#   from flask.ext.wtf.csrf import CsrfProtect
-# presswork/flask_app/app.py:21: FlaskWTFDeprecationWarning: "flask_wtf.CsrfProtect" has been renamed to "CSRFProtect" and will be removed in 1.0.
-#   csrf = CsrfProtect(app=app)
 
-
-
-class MarkovChainTextMakerForm(Form):
+class MarkovChainTextMakerForm(FlaskForm):
     input_text = StringField(
-        'Input text',
-        validators=[
-            validators.InputRequired(),
-            validators.Length(max=1000000) # XXX: this limit was picked arbitrarily, not by observation nor testing
-        ]
+            'Input text',
+            validators=[
+                validators.InputRequired(),
+                validators.Length(max=1000000)  # XXX: this limit was picked arbitrarily, not by observation nor testing
+            ]
     )
 
     ngram_size = IntegerField(
-        "N-gram size AKA state size AKA window size (increase for more 'rigid' modeling of input text)",
-        validators=[validators.NumberRange(min=1, max=6)],
-        default=constants.DEFAULT_NGRAM_SIZE, )
+            "N-gram size AKA state size AKA window size (increase for more 'rigid' modeling of input text)",
+            validators=[validators.NumberRange(min=1, max=6)],
+            default=constants.DEFAULT_NGRAM_SIZE, )
 
     count_of_sentences_to_make = IntegerField(
-        "Number of sentences to generate", [validators.NumberRange(min=1, max=3000)], default=50, )
+            "Number of sentences to generate", [validators.NumberRange(min=1, max=3000)], default=50, )
 
     # XXX really this should be a SelectField but WTForms was being the pain and I want to handle other things first.
     # (while I like the micro-ness of Flask for purposes this, forms are often a pain...)
@@ -64,14 +52,14 @@ class MarkovChainTextMakerForm(Form):
             "Markov Chain Strategy | choices: {} | Usually leave this as default. "
             "If markovify gives you issues with Unicode try pymc. ".format(
                     ", ".join(text_makers.TEXT_MAKER_NICKNAMES)),
-            validators=[validators.InputRequired(),validators.Length(max=20),],
+            validators=[validators.InputRequired(), validators.Length(max=20), ],
             default=text_makers.DEFAULT_TEXT_MAKER_NICKNAME)
 
     tokenizer_strategy = StringField(
             "Tokenizer Strategy | choices: {} | NLTK is most versatile but slower. Markovify tokenizer "
             "is fast but narrow. (Only use 'whitespace' tokenizer when your input is 1 sentence per line.)".format(
                     ", ".join(grammar.TOKENIZER_NICKNAMES)),
-            validators=[validators.InputRequired(),validators.Length(max=20),],
+            validators=[validators.InputRequired(), validators.Length(max=20), ],
             default='nltk')
 
     def validate_text_maker_strategy(form, field):
@@ -115,13 +103,13 @@ def markov():
                 input_text=input_text,
                 strategy=text_maker_strategy,
                 sentence_tokenizer=tokenizer_strategy,
-                ngram_size=ngram_size,)
+                ngram_size=ngram_size, )
 
         generated_text_body = grammar.rejoin(text_maker.make_sentences(count=count_of_sentences_to_make))
         generated_text_title = grammar.rejoin(text_maker.make_sentences(count=1))
 
         return render_template(
-            'index.html', form=form, generated_text=generated_text_body, generated_text_title=generated_text_title)
+                'index.html', form=form, generated_text=generated_text_body, generated_text_title=generated_text_title)
 
     return render_template('index.html', form=form)
 
@@ -129,9 +117,11 @@ def markov():
 if __name__ == "__main__":  # pragma: no cover
     """ development-only server. will run in Flask's wonderful, wonderful debug mode if you give it "--debug"
     """
-    import os, sys
+    import os
+    import sys
 
     from presswork.log import setup_logging
+
     setup_logging()
 
     try:

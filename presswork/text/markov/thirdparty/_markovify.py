@@ -1,4 +1,4 @@
-""" adapters for the Markovify lib.
+""" adapters for the Markovify lib. consider this class private, and instead use TextMaker interface!
 """
 import markovify
 
@@ -8,6 +8,7 @@ from presswork import constants
 class Disabled(ValueError):
     """ markovify adapter disables some features to avoid confusion and keep things tight across `presswork`
     """
+
 
 class NotYetImplementedInAdapter(NotImplementedError):
     """ markovify adapter isn't yet ready to handle these features (need some careful work to integrate)

@@ -64,8 +64,6 @@ from UserList import UserList
 import markovify
 import nltk
 
-from presswork.sanitize import SanitizedString
-
 logger = logging.getLogger('presswork')
 
 re_ascii_punctuation = re.compile(u'[%s]' % re.escape(string.punctuation), flags=re.UNICODE)
@@ -173,6 +171,7 @@ class SentenceTokenizerMarkovify(BaseSentenceTokenizer):
 
     https://github.com/jsvine/markovify/blob/v0.6.0/markovify/splitters.py#L41-L53
     """
+
     def __init__(self, word_tokenizer=None):
         if not word_tokenizer:
             word_tokenizer = WordTokenizerWhitespace()
@@ -197,6 +196,7 @@ class WordTokenizerTreebank(BaseWordTokenizer):
     def tokenize(self, text):
         """
         >>> # just getting coverage for .unwrap() line, which doesn't end up exercised by other tests
+        >>> from presswork.sanitize import SanitizedString
         >>> WordTokenizerTreebank().tokenize(SanitizedString("Hello there!!!"))
         [u'Hello', u'there', u'!', u'!', u'!']
         """
@@ -226,7 +226,6 @@ class SentenceTokenizerPunkt(BaseSentenceTokenizer):
         if hasattr(text, 'unwrap'):
             text = text.unwrap()
         return self.strategy.tokenize(text)
-
 
 
 # class BaseJoiner(object):
@@ -267,6 +266,7 @@ class WordList(UserList):
         """
         return self.data
 
+
 class SentencesAsWordLists(UserList):
     """ basically a list of lists of strings, with helper methods that make sense for 'sentences'
     """
@@ -296,8 +296,7 @@ class SentencesAsWordLists(UserList):
             return [word_list for word_list in self.data]
 
 
-# FIXME delete this method, should be using Joiners
-# TODO(hangtwenty) rejoiner aka composer classes... but still keep a convenience-function that's just like "rejoin it the default way" yet
+# FIXME either delete this method, or just make it a wrapper around a default Joiner ... once those are added
 def rejoin(sentences_of_words, sentence_sep="\n", word_sep=" "):
     return sentence_sep.join(word_sep.join(word for word in sentence) for sentence in sentences_of_words).strip()
 

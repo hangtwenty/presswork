@@ -23,7 +23,7 @@ from presswork import constants
 try:
     # try to use cPickle for better performance (python2)
     import cPickle as pickle
-except ImportError: # pragma: no cover
+except ImportError:  # pragma: no cover
     import pickle
 
 from collections import defaultdict
@@ -34,7 +34,6 @@ import random
 import warnings
 
 SPECIAL_TOKEN = u''
-
 
 
 def _db_factory():
@@ -66,20 +65,18 @@ class PyMarkovChainForked(object):
 
     See module header for notes on AUTHORSHIP and CAVEATS.
     """
-    # TODO this should use tmpdir
-    DEFAULT_DB_FILE_PATH = os.path.join(os.path.dirname(__file__), "presswork_markov_db")
-    DEFAULT_WINDOW_SIZE_WORDS = constants.DEFAULT_NGRAM_SIZE
 
     def __init__(
             self,
             db_file_path=None,
-            window=DEFAULT_WINDOW_SIZE_WORDS,
+            window=constants.DEFAULT_NGRAM_SIZE,
     ):
         self.window = window
 
         self.db = None
         self.db_file_path = db_file_path
-        self.load_db_pickle_from_filepath()
+        if self.db_file_path is not None:
+            self.load_db_pickle_from_filepath()
 
         if self.db is None:
             self.db = _db_factory()

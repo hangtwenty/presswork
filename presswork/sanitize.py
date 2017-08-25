@@ -27,7 +27,8 @@ all_control_chars = map(unichr, _all_control_char_numbers)
 control_chars_besides_newlines = map(unichr, _char_numbers_besides_newlines)
 
 re_control_chars = re.compile(u'[%s]' % re.escape(u''.join(all_control_chars)), flags=re.UNICODE)
-re_control_chars_besides_newlines = re.compile(u'[%s]' % re.escape(u''.join(control_chars_besides_newlines)), flags=re.UNICODE)
+re_control_chars_besides_newlines = \
+    re.compile(u'[%s]' % re.escape(u''.join(control_chars_besides_newlines)), flags=re.UNICODE)
 
 
 class SanitizedString(UserString):

@@ -33,4 +33,3 @@ def tabs_to_nbsp(value, indent_size=4):
         '&nbsp;&nbsp;&nbsp;&nbsp;Indented by 4.'
     """
     return Markup(value.replace('\t', '&nbsp;' * indent_size))
-

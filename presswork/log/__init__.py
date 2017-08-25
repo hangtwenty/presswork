@@ -14,6 +14,7 @@ HERE = os.path.abspath(os.path.dirname(__file__))
 
 PRESSWORK_LOGGING_HAS_BEEN_SET_UP = False
 
+
 def setup_logging(path_to_logging_yaml=os.path.join(HERE, "logging.yaml")):
     """Setup logging configuration
     """

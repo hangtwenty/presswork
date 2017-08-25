@@ -13,4 +13,5 @@ before_script:
 script:
    - ./cc-test-reporter before-build
    - tox
-   - ./cc-test-reporter after-build --exit-code $TRAVIS_TEST_RESULT
+   # cc-test-reporter sometimes fails too sensitively (i.e. "A test report for commit ... already exist"), for now just make it allow-fail
+   - './cc-test-reporter after-build --exit-code $TRAVIS_TEST_RESULT || echo "FAILURE: Failed to report to code climate, please investigate"'
