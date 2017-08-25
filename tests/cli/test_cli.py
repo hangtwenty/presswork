@@ -39,10 +39,10 @@ def test_cli_large_input_from_file(runner, text_newlines, strategy, ngram_size):
     assert output_text
 
     output_text = result.output.strip()
-    tokenizer = grammar.create_sentence_tokenizer('whitespace')
+    tokenize = grammar.create_sentence_tokenizer('whitespace').tokenize
 
     word_set_comparison = helpers.WordSetComparison(
-            generated_tokens=tokenizer(output_text), input_tokenized=tokenizer(input_text))
+            generated_tokens=tokenize(output_text), input_tokenized=tokenize(input_text))
     assert word_set_comparison.output_is_subset_of_input
 
 
@@ -61,10 +61,10 @@ def test_cli_large_input_from_stdin(runner, text_newlines):
     ])
 
     output_text = result.output.strip()
-    tokenizer = grammar.create_sentence_tokenizer('whitespace')
+    tokenize = grammar.create_sentence_tokenizer('whitespace').tokenize
 
     word_set_comparison = helpers.WordSetComparison(
-            generated_tokens=tokenizer(output_text), input_tokenized=tokenizer(input_text))
+            generated_tokens=tokenize(output_text), input_tokenized=tokenize(input_text))
     assert word_set_comparison.output_is_subset_of_input
 
 

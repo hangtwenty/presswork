@@ -4,32 +4,40 @@
 <head lang="en">
   <meta charset="UTF-8">
   <title>presswork Markov Chain text maker</title>
-  <link rel="stylesheet" href="//maxcdn.bootstrapcdn.com/bootstrap/3.3.4/css/bootstrap.min.css"
+  <!--<link rel="stylesheet" href="//maxcdn.bootstrapcdn.com/bootstrap/3.3.4/css/bootstrap.min.css"-->
+        <!--type="text/css">-->
+  <link rel="stylesheet" href="//maxcdn.bootstrapcdn.com/bootstrap/4.0.0-beta/css/bootstrap.min.css"
         type="text/css">
+  <style>
+    .top-bottom-margins {
+      margin-top: 12pt;
+      margin-bottom: 12pt;
+    }
+  </style>
 </head>
 
 <body>
 {% import "macros.html" as macros %}
-<div class="container">
-  <h1>Markov Chain
-    <small>Text Generator</small>
-  </h1>
+<div class="container top-bottom-margins">
 
   <div class="col-md-12">
-    {% if text_made %}
-    <h4><em>{{ text_made_title }}</em></h4>
-    <div>
-      {{ text_made | newlines_to_br | tabs_to_nbsp }}
+    <h1>Markov Chain
+      <small>Text Generator</small>
+    </h1>
+
+    {% if generated_text %}
+    <h4 id="generated-text-title">{{ generated_text_title }}</h4>
+    <div id="generated-text-body">
+      {{ generated_text | newlines_to_br | tabs_to_nbsp }}
     </div>
     {% endif %}
   </div>
 
   <div class="col-md-12">
-    {% if text_made %}
+    {% if generated_text %}
     <hr/>
+    <h2>Let's go again!</h2>
     {% endif %}
-
-    <h4>Instructions</h4>
 
     <div>
       <p>
@@ -42,9 +50,9 @@
 
     <form action="/" method="post">
       <div class="form-group">
-        {{ form.text.label }}
-        <textarea class="form-control" rows="20" id="text"
-                  name="text">{{ form.text.default if form.text.default }}</textarea>
+        {{ form.input_text.label }}
+        <textarea class="form-control" rows="20" id="input_text"
+                  name="text">{{ form.input_text.default if form.input_text.default }}</textarea>
       </div>
       <div class="form-group">
         {{ macros.form_field(form.ngram_size) }}
@@ -53,7 +61,8 @@
         {{ macros.form_field(form.count_of_sentences_to_make) }}
       </div>
       <div class="form-group">
-        {{ macros.form_field(form.strategy) }}
+        {{ macros.form_field(form.text_maker_strategy) }}
+        {{ macros.form_field(form.tokenizer_strategy) }}
       </div>
       {{ form.csrf_token }}
       <button type="submit" class="btn btn-default">Submit</button>

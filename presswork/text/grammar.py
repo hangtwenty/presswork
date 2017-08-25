@@ -1,9 +1,15 @@
 # -*- coding: utf-8 -*-
 """ containers for sentences-of-words, plus Splitter/Tokenizer and Rejoiner utilities & strategies
 
--------------------------------------------------------------------------------
-design notes -- overall, contrast with similar libs, & context in project
-===============================================================================
+    >>> list(WordTokenizerWhitespace().tokenize('foo bar baz'))
+    ['foo', 'bar', 'baz']
+    >>> SentenceTokenizerNLTK().tokenize('Foo bar baz. Another sentence in the input.').unwrap()
+    [['Foo', 'bar', 'baz', '.'], ['Another', 'sentence', 'in', 'the', 'input', '.']]
+    >>> # TODO show the joiners too
+
+------------------------------------------------------------------------------------
+design notes -- high level/ context. & compare/contrast to approach in similar libs
+====================================================================================
 
     * (to start with,) this module mostly just fronts other libs and modules, but helps with clean/uniform usage
     * most common flow for text generator play: text => structured model (=> generate) => rejoin to text
@@ -12,16 +18,17 @@ design notes -- overall, contrast with similar libs, & context in project
     * this is similar to NLTK's view of things, and Markovify's view of things. with some differences:
         * the main diff. vs. NLTK: NLTK likes flat list of words (some methods flatten sentence structure too eagerly)
         * the main diff. vs. Markovify: Markovify uses the Sentences-As-Word-Lists structure too,
-            but then stringifies a bit eagerly.
+            but then stringifies a bit eagerly (i.e. before returning anything, if you want to post-process
+            you have to redundantly tokenize, and that can be lossy, messy).
     * by keeping more structure and being more 'lazy' about rejoining, we can mix-and-match more strategies.
 
 -------------------------------------------------------------------------------
 design notes -- WordTokenizers, SentenceTokenizers
 ===============================================================================
 
-    * these take in strings and tokenize ('parse') out to lists of sentences, lists of words
-    * sentence tokenizer tokenizes to sentences & tokenizes each sentence to words.
-    * keep these minimal, basically method-objects, with a unified interface
+    * These are collaborators: Each SentenceTokenizer has its own default WordTokenizer, but can be customized.
+    * WordTokenizer takes in a list of strings (sentence-strings) and tokenizes each. (to 'words'.)
+    * SentenceTokenizer takes in one string, tokenizes to sentences, then calls a WordTokenizer on each sentence
     * I starting writing an interface that seemed intuitive to me, then realized it is not so different from NLTK.
         I'll take that as affirmation that it makes basic sense, but I am going to keep a key difference -
         here I want to keep sentence and word tokenizations separate. defer flattening until last step when
@@ -35,7 +42,7 @@ design notes -- WordList, SentencesAsWordLists
     * simple containers, maybe with some helper methods
         * [ [word, word, ...], [word, word, ...], ... ]
     * Keep duck-typing in mind - most things that use these, should also Just Work when given plain lists,
-        or plain lists-of-lists. don't type-check and depend on the type of these.
+        or plain lists-of-lists. don't type-check strictly, stay compatible with primitives/builtins
     * if helper methods are added to them, they should be just that - HELPERS - i.e. things should work OK
         without them. just 'guardrails' or 'progressive enhancements', if that makes sense.
 
@@ -46,7 +53,7 @@ design notes -- Joiners
     * a Joiner takes in SentencesAsWordLists and joins the tokens back into strings according to some strategy.
     * so it is the same responsibility as a 'de-tokenizer' as NLTK calls it. but calling it a Joiner to keep it broad.
         I imagine weirder things a Joiner could do, not just "de-tokenizing", but putting in variations as it goes -
-        whitespace/indentation, enjambment, etc., as they re-join. Could be good for (pseudo-)poetic uses
+        whitespace/indentation, enjambment, etc., as they re-join. Could be good for (pseudo-)poetic uses!
 
 """
 import logging
@@ -56,8 +63,6 @@ from UserList import UserList
 
 import markovify
 import nltk
-
-from presswork.sanitize import SanitizedString
 
 logger = logging.getLogger('presswork')
 
@@ -76,13 +81,10 @@ class BaseWordTokenizer(object):
         :type text: basestring
         :rtype: WordList
         """
-        raise NotImplementedError()
+        raise NotImplementedError()  # pragma: no cover
 
-    def __call__(self, *args, **kwargs):
-        return self.tokenize(*args, **kwargs)
-
-    def __repr__(self):
-        return "<{}>".format(self.__class__.__name__)
+    def __repr__(self):  # pragma: no cover
+        return "{}()".format(self.__class__.__name__)
 
 
 class BaseSentenceTokenizer(object):
@@ -106,10 +108,14 @@ class BaseSentenceTokenizer(object):
         (this shouldn't depend on word_tokenizer)
         :rtype: list
         """
-        raise NotImplementedError()
+        raise NotImplementedError()  # pragma: no cover
 
     @property
     def word_tokenizer(self):
+        """
+        >>> import pytest
+        >>> with pytest.raises(ValueError): BaseSentenceTokenizer(word_tokenizer=None).word_tokenizer.tokenize()
+        """
         if not self._word_tokenizer:
             raise ValueError("word_tokenizer not configured!")
         return self._word_tokenizer
@@ -118,11 +124,8 @@ class BaseSentenceTokenizer(object):
     def word_tokenizer(self, word_tokenizer):
         self._word_tokenizer = word_tokenizer
 
-    def __call__(self, *args, **kwargs):
-        return self.tokenize(*args, **kwargs)
-
-    def __repr__(self):
-        return "<{}>".format(self.__class__.__name__)
+    def __repr__(self):  # pragma: no cover
+        return "{}(word_tokenizer={!r})".format(self.__class__.__name__, self.word_tokenizer)
 
 
 class WordTokenizerWhitespace(BaseWordTokenizer):
@@ -168,15 +171,15 @@ class SentenceTokenizerMarkovify(BaseSentenceTokenizer):
 
     https://github.com/jsvine/markovify/blob/v0.6.0/markovify/splitters.py#L41-L53
     """
+
     def __init__(self, word_tokenizer=None):
         if not word_tokenizer:
             word_tokenizer = WordTokenizerWhitespace()
         super(SentenceTokenizerMarkovify, self).__init__(word_tokenizer)
 
     def _tokenize_to_sentence_strings(self, text):
-        if isinstance(text, unicode) or (hasattr(text, "data") and isinstance(text.data, unicode)):
-            logger.warning("Markovify does not officially support unicode, YMMV! "
-                           "Most likely, your unicode will be stripped out or replaced with ASCII.".format(type(text)))
+        if hasattr(text, 'unwrap'):
+            text = text.unwrap()
         return markovify.splitters.split_into_sentences(text)
 
 
@@ -191,9 +194,15 @@ class WordTokenizerTreebank(BaseWordTokenizer):
         self.strategy = nltk.TreebankWordTokenizer()
 
     def tokenize(self, text):
-        if not isinstance(text, SanitizedString) and not isinstance(text, unicode):
-            logger.warning("NLTK expects unicode, but this text is type={}".format(type(text)))
-        return WordList(self.strategy.tokenize(unicode(text)))
+        """
+        >>> # just getting coverage for .unwrap() line, which doesn't end up exercised by other tests
+        >>> from presswork.sanitize import SanitizedString
+        >>> WordTokenizerTreebank().tokenize(SanitizedString("Hello there!!!"))
+        [u'Hello', u'there', u'!', u'!', u'!']
+        """
+        if hasattr(text, 'unwrap'):
+            text = text.unwrap()
+        return WordList(self.strategy.tokenize(text))
 
 
 class SentenceTokenizerPunkt(BaseSentenceTokenizer):
@@ -214,10 +223,9 @@ class SentenceTokenizerPunkt(BaseSentenceTokenizer):
         self.strategy = nltk.data.load('tokenizers/punkt/english.pickle')
 
     def _tokenize_to_sentence_strings(self, text):
-        if not isinstance(text, SanitizedString) and not isinstance(text, unicode):
-            logger.warning("NLTK expects unicode, but this text is type={}".format(type(text)))
-        return self.strategy.tokenize(unicode(text))
-
+        if hasattr(text, 'unwrap'):
+            text = text.unwrap()
+        return self.strategy.tokenize(text)
 
 
 # class BaseJoiner(object):
@@ -244,6 +252,11 @@ class WordList(UserList):
         self.sanity_check()
 
     def sanity_check(self):
+        """
+        >>> import pytest
+        >>> assert WordList(["some", "words"])
+        >>> with pytest.raises(ValueError): WordList([["oops", "you", "passed..."], ["a", "sentence", "list"]])
+        """
         if self.data:
             if not isinstance(self.data[0], basestring):
                 raise ValueError("should be list of strings")
@@ -252,6 +265,7 @@ class WordList(UserList):
         """ return internal list (useful when we need to pass to something that is over-strict about type-checking)
         """
         return self.data
+
 
 class SentencesAsWordLists(UserList):
     """ basically a list of lists of strings, with helper methods that make sense for 'sentences'
@@ -262,6 +276,12 @@ class SentencesAsWordLists(UserList):
         self.sanity_check()
 
     def sanity_check(self):
+        """
+        >>> import pytest
+        >>> assert SentencesAsWordLists([["oops", "you", "passed..."], ["a", "sentence", "list"]])
+        >>> with pytest.raises(ValueError): SentencesAsWordLists(["oops", "it's", "a", "flat", "list", "of", "words"])
+        >>> with pytest.raises(ValueError): WordList([["oops", "you", "passed..."], ["a", "sentence", "list"]])
+        """
         if self.data:
             if isinstance(self.data[0], basestring):
                 raise ValueError("should be list of lists, appears to be list of strings")
@@ -276,31 +296,9 @@ class SentencesAsWordLists(UserList):
             return [word_list for word_list in self.data]
 
 
-
-# TODO delete this method
-# @DeprecationWarning
-def crude_split_sentences(text):
-    """ do basic split-up of 'sentences' returning tuple.
-    """
-    return tuple(SentenceTokenizerWhitespace()._tokenize_to_sentence_strings(text))
-
-
-# TODO delete this method
-# @DeprecationWarning
-def crude_split_words(text):
-    """ do basic split-up of words, returning tuple
-
-        >>> newline = chr(10)
-        >>> crude_split_words("foo bar baz" + newline * 10 + " quux " + newline * 20000)
-        ('foo', 'bar', 'baz', 'quux')
-    """
-    return tuple(text.split())
-
-
-# FIXME delete this method, should be using Joiners
-# TODO(hangtwenty) rejoiner aka composer classes... but still keep a convenience-function that's just like "rejoin it the default way" yet
+# FIXME either delete this method, or just make it a wrapper around a default Joiner ... once those are added
 def rejoin(sentences_of_words, sentence_sep="\n", word_sep=" "):
-    return sentence_sep.join(word_sep.join(word for word in sentence) for sentence in sentences_of_words)
+    return sentence_sep.join(word_sep.join(word for word in sentence) for sentence in sentences_of_words).strip()
 
 
 # ===============================================================
@@ -312,8 +310,11 @@ SentenceTokenizerNLTK = SentenceTokenizerPunkt
 
 tokenizer_classes_by_nickname = {
     "nltk": SentenceTokenizerNLTK,
-    "whitespace": SentenceTokenizerWhitespace
+    "whitespace": SentenceTokenizerWhitespace,
+    "markovify": SentenceTokenizerMarkovify
 }
+
+TOKENIZER_NICKNAMES = tokenizer_classes_by_nickname.keys()
 
 
 def create_sentence_tokenizer(nickname):

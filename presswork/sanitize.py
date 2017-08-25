@@ -27,7 +27,8 @@ all_control_chars = map(unichr, _all_control_char_numbers)
 control_chars_besides_newlines = map(unichr, _char_numbers_besides_newlines)
 
 re_control_chars = re.compile(u'[%s]' % re.escape(u''.join(all_control_chars)), flags=re.UNICODE)
-re_control_chars_besides_newlines = re.compile(u'[%s]' % re.escape(u''.join(control_chars_besides_newlines)), flags=re.UNICODE)
+re_control_chars_besides_newlines = \
+    re.compile(u'[%s]' % re.escape(u''.join(control_chars_besides_newlines)), flags=re.UNICODE)
 
 
 class SanitizedString(UserString):
@@ -46,9 +47,10 @@ class SanitizedString(UserString):
         >>> assert SanitizedString(null_byte) == ''
         >>> assert SanitizedString(null_byte + "hello") == "hello"
         >>> assert SanitizedString(SanitizedString(SanitizedString(SanitizedString(u'idempotent')))) == u'idempotent'
-        >>> hi_san = SanitizedString('hi')
+        >>> cleaned = SanitizedString('hi')
         >>> # confirm we avoid redundant sanitization: we would expect the internal string to be exact same object
-        >>> assert SanitizedString(SanitizedString(hi_san)).data is hi_san.data
+        >>> assert cleaned.data is SanitizedString(SanitizedString(SanitizedString(cleaned))).data
+        >>> assert unicode(SanitizedString(u"unicøde")) == u"unicøde"
     """
 
     # noinspection PyMissingConstructor
@@ -60,6 +62,11 @@ class SanitizedString(UserString):
             for sanitizer in SANITIZERS:
                 s = sanitizer(s)
             self.data = s
+
+    def unwrap(self):
+        """ return internal string (useful when we need to pass to something that is over-strict about type-checking)
+        """
+        return self.data
 
     def __unicode__(self):
         return unicode(self.data)

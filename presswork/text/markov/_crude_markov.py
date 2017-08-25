@@ -1,20 +1,27 @@
 # -*- coding: utf-8 -*-
 """ Very basic homegrown implementation for fun & reference purposes.
 
-The implementations in `thirdparty` are preferable for nearly all use-cases!
+If you're looking to generate text, don't *start* here. Start with the `text_makers` module!
 
-Notable deficiencies of the 'crude' implementation:
-    - no maturity or battle testing, so haven't found the edge cases yet
-    - no optimization of memory usage: instead of storing #s of probabilities, raw lists are used
+    >>> model = crude_markov_chain([["A", "tokenized", "sentence."], ["A", "tokenized", "sentence."]])
+    >>> for word_sequence in iter_make_sentences(model, count=2):
+    ...     print " ".join([word.strip() for word in word_sequence if word.strip()])
+    A tokenized sentence.
+    A tokenized sentence.
+
+The implementations in `thirdparty` are preferable for most use cases. Disadvantages to this implementation:
+    * brand new & not as much battle-testing. fixed various edge cases, & things seem stable, but there could be more.
+    * no optimization of memory usage: instead of storing #s of probabilities, raw lists are used
         (Simplest Thing That Could Possibly Work, demos the essential algorithm, that's all)
-    - no optimization of lookups for performance boosts (contrast with jsvine/markovify)
+    * no optimization of lookups for performance boosts (contrast with jsvine/markovify)
 
 Why it's kept around:
-    - provides something to contrast the other implementations with, for testing and benchmarking
-    - provides a stripped-down reference implementation for understanding the algorithm (which is fundamentally similar
+    * provides something to contrast the other implementations with, for testing and benchmarking
+    * provides a stripped-down reference implementation for understanding the algorithm (which is fundamentally similar
     to the other implementations). Note, it's not a minimal 'pure' Markov Chain impl., rather it's a minimal
     'Markov Chain Text Generator' impl. It is defiinitely narrowed to the domain.
-    - this whole repository is just for fun, this file included
+    * this whole repository is just for fun, this file included :)
+
 """
 import logging
 import pprint
@@ -45,15 +52,15 @@ def crude_markov_chain(sentences_as_word_lists, ngram_size=constants.DEFAULT_NGR
 
     for word_sequence in sentences_as_word_lists:
 
-        words_with_padding = ngram_for_sentence_start(ngram_size) + word_sequence + (END_SYMBOL,)
+        words_with_padding = ngram_for_sentence_start(ngram_size) + tuple(word_sequence) + (END_SYMBOL,)
 
         for i in xrange(0, len(word_sequence) + 1):
             ngram = tuple(words_with_padding[i:(i + ngram_size)])
 
             try:
                 next_word = words_with_padding[i + ngram_size]
-            except IndexError:
-                # (This failsafe should no longer be necessary, but leaving it anyways; it is not *in*correct.)
+            except IndexError:  # pragma: no cover
+                # (This fallback should no longer be necessary, but leaving it anyways; it is not *in*correct.)
                 next_word = END_SYMBOL
 
             # Re: memory usage -- see note in module docstring. (left unoptimized)
@@ -62,7 +69,7 @@ def crude_markov_chain(sentences_as_word_lists, ngram_size=constants.DEFAULT_NGR
             else:
                 model[ngram].append(next_word)
 
-    if logger.level == logging.DEBUG:
+    if logger.level == logging.DEBUG:  # pragma: no cover
         try:
             logger.debug(u'model=\n{}'.format(pprint.pformat(model, width=2)))
         except:

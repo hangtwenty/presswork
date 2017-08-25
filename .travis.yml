@@ -2,13 +2,16 @@
 
 language: python
 python:
-#  - 3.5
-#  - 3.4
-#  - 3.3
   - 2.7
 
-# command to install dependencies, e.g. pip install -r requirements.txt --use-mirrors
 install: pip install -U tox-travis
-
-# command to run tests, e.g. python setup.py test
 script: tox
+
+before_script:
+  - curl -L https://codeclimate.com/downloads/test-reporter/test-reporter-latest-linux-amd64 > ./cc-test-reporter
+  - chmod +x ./cc-test-reporter
+script:
+   - ./cc-test-reporter before-build
+   - tox
+   # cc-test-reporter sometimes fails too sensitively (i.e. "A test report for commit ... already exist"), for now just make it allow-fail
+   - './cc-test-reporter after-build --exit-code $TRAVIS_TEST_RESULT || echo "FAILURE: Failed to report to code climate, please investigate"'

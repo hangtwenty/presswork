@@ -1,11 +1,11 @@
-#!/usr/bin/env python
 # -*- coding: utf-8 -*-
-""" tests directly against PyMarkovChainFork class (as opposed to the PyMarkovChainTextMaker class, which is preferable)
+""" tests directly against PyMarkovChainFork class (as opposed to the PyMarkovChainTextMaker class that wraps it)
 
-just a couple because of forking the lib. want to give it smoketests on its own, aside from other
+just a couple cases because of forking the lib. want to give it smoketests on its own, aside from other
 tests related to TextMaker variants. (if something went wrong, it would help pinpoint.)
 """
 import os
+import warnings
 from collections import namedtuple
 
 import pytest
@@ -16,26 +16,31 @@ from presswork.text.markov.thirdparty._pymarkovchain import PyMarkovChainForked
 
 SentencesTestCase = namedtuple('SentencesTestCase', ['text', 'phrase_in_each_sentence'])
 
+# same thing is repeated in test_essentials file, but leaving it redundant, it's good to have an obvious case sometimes
 TEST_CASE_ZEN_OF_PYTHON = SentencesTestCase(
         phrase_in_each_sentence="better than",
-        text="""
-Beautiful is better than ugly.
-Explicit is better than implicit.
-Simple is better than complex.
-Complex is better than complicated.
-Flat is better than nested.
-Sparse is better than dense.
-""")
+        text=("Beautiful is better than ugly.\n" +
+              "Explicit is better than implicit.\n" +
+              "Simple is better than complex.\n" +
+              "Complex is better than complicated.\n" +
+              "Flat is better than nested.\n" +
+              "Sparse is better than dense."))
 
 
 @pytest.fixture
 def pymc(tmpdir):
-    # note, even though this is using db file, it's using pytest `tmpdir`, so each run gets its own (shouldn't pollute)
-    db_file_path = os.path.join(str(tmpdir), "presswork_markov_db")  # TODO get rid of db stuff
-    pymc = PyMarkovChainForked(db_file_path=db_file_path)
-    return pymc
+    # we DO want to have the deprecation warnings for pymc's DB features if someone directly used them
+    # we DON'T want them making a bunch of noise in these tests. we'll remove the features & the tests, later
+    with warnings.catch_warnings():
+        # note, even though this is using db file, it's using pytest `tmpdir`, so each test run gets its own,
+        # so there should not be pollution across runs, nor between procs when using pytest-xdist.
+        db_file_path = os.path.join(str(tmpdir), "presswork_markov_db")
+        pymc = PyMarkovChainForked(db_file_path=db_file_path)
+        yield pymc
 
-tokenize = grammar.SentenceTokenizerWhitespace()
+
+tokenize = grammar.SentenceTokenizerWhitespace().tokenize
+
 
 @pytest.mark.parametrize(('test_case'), [TEST_CASE_ZEN_OF_PYTHON])
 def test_high_level_behavior(pymc, test_case):
@@ -66,21 +71,24 @@ def test_high_level_behavior(pymc, test_case):
 
 @pytest.mark.parametrize(('test_case'), [TEST_CASE_ZEN_OF_PYTHON])
 def test_database_persistence(pymc, test_case):
-    assert test_case.phrase_in_each_sentence not in rejoin(pymc.make_sentences_list(1))
-    pymc.database_init(tokenize(test_case.text))
-    assert test_case.phrase_in_each_sentence in rejoin(pymc.make_sentences_list(1))
-    pymc.database_dump()
-    pymc.database_clear()
-    pymc.database_init(tokenize(test_case.text))
-    assert test_case.phrase_in_each_sentence in rejoin(pymc.make_sentences_list(1))
+    # we DO want to have the deprecation warnings for pymc's DB features if someone directly used them
+    # we DON'T want them making a bunch of noise in these tests. we'll remove the features & the tests, later
+    with warnings.catch_warnings():
+        assert test_case.phrase_in_each_sentence not in rejoin(pymc.make_sentences_list(1))
+        pymc.database_init(tokenize(test_case.text))
+        assert test_case.phrase_in_each_sentence in rejoin(pymc.make_sentences_list(1))
+        pymc.database_dump()
+        pymc.database_clear()
+        pymc.database_init(tokenize(test_case.text))
+        assert test_case.phrase_in_each_sentence in rejoin(pymc.make_sentences_list(1))
 
-    # dump DB, use another instance to load DB...
-    pymc.database_dump()
-    # we dumped the DB so another instance w/ same db_file_path argument should behave same.
-    text_maker_2 = PyMarkovChainForked(db_file_path=pymc.db_file_path)
-    # notice we do not call `database_init` - that doesn't need to happen
-    assert test_case.phrase_in_each_sentence in rejoin(text_maker_2.make_sentences_list(1))
+        # dump DB, use another instance to load DB...
+        pymc.database_dump()
+        # we dumped the DB so another instance w/ same db_file_path argument should behave same.
+        text_maker_2 = PyMarkovChainForked(db_file_path=pymc.db_file_path)
+        # notice we do not call `database_init` - that doesn't need to happen
+        assert test_case.phrase_in_each_sentence in rejoin(text_maker_2.make_sentences_list(1))
 
-    pymc.database_clear()
-    # even though we just deleted the db file, db is still in memory...
-    assert test_case.phrase_in_each_sentence in rejoin(pymc.make_sentences_list(1))
+        pymc.database_clear()
+        # even though we just deleted the db file, db is still in memory...
+        assert test_case.phrase_in_each_sentence in rejoin(pymc.make_sentences_list(1))

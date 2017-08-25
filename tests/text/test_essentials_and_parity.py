@@ -1,43 +1,15 @@
+# -*- coding: utf-8 -*-
 """ test TextMaker variants - esp. essential properties of markov chain text generators, and fundamental parity
 """
-# -*- coding: utf-8 -*-
 import pytest
 
 import presswork.text.grammar
 from presswork.text import grammar
 from presswork.text import text_makers
+from presswork.text.markov import _crude_markov
 from presswork.utils import iter_flatten
 
 from tests import helpers
-
-
-@pytest.fixture(params=text_makers.CLASS_NICKNAMES)
-def each_text_maker(request):
-    """ get 1 text maker instance (doesn't load input_text; so, test cases control input_text, ngram_size)
-
-    the fixture is parametrized so that test cases will get 'each' text_maker, 1 per test case
-
-    this fixture should be used in tests where the criteria isn't specific to the text maker implementation,
-    such as these essentials/parity texts.
-    """
-    name = request.param
-    text_maker = text_makers.create_text_maker(class_or_nickname=name)
-    return text_maker
-
-
-@pytest.fixture()
-def all_text_makers(request):
-    """ get instances of ALL text maker variants (doesn't load input_text; test cases control input_text, ngram_size)
-
-    this fixture should be used when we want multiple text maker varieties in one test, such as to confirm that
-    under valid circumstances they behave similar (or same) for similar inputs
-    """
-    all_text_makers = []
-    for name in text_makers.CLASS_NICKNAMES:
-        text_maker = text_makers.create_text_maker(class_or_nickname=name)
-        all_text_makers.append(text_maker)
-
-    return all_text_makers
 
 
 def test_smoketest_common_phrase(each_text_maker):
@@ -63,7 +35,6 @@ def test_smoketest_common_phrase(each_text_maker):
 @pytest.mark.parametrize('sentence_tokenizer', [
     grammar.SentenceTokenizerPunkt(word_tokenizer=grammar.WordTokenizerTreebank()),
     grammar.SentenceTokenizerPunkt(word_tokenizer=grammar.WordTokenizerWhitespace()),
-    grammar.SentenceTokenizerMarkovify(word_tokenizer=grammar.WordTokenizerWhitespace()),
 ])
 def test_essential_properties_of_text_making(each_text_maker, ngram_size, sentence_tokenizer, text_any):
     """ confirm some essential known properties of text-making output, common to all the text makers
@@ -77,6 +48,7 @@ def test_essential_properties_of_text_making(each_text_maker, ngram_size, senten
     """
     text_maker = each_text_maker
     text_maker.ngram_size = ngram_size
+    text_maker.sentence_tokenizer = sentence_tokenizer
 
     _input_tokenized = text_maker.input_text(text_any)
 
@@ -89,7 +61,7 @@ def test_essential_properties_of_text_making(each_text_maker, ngram_size, senten
 @pytest.mark.parametrize('sentence_tokenizer', [
     grammar.SentenceTokenizerWhitespace(word_tokenizer=grammar.WordTokenizerWhitespace()),
     grammar.SentenceTokenizerWhitespace(word_tokenizer=grammar.WordTokenizerTreebank()),
-    grammar.SentenceTokenizerMarkovify(word_tokenizer=grammar.WordTokenizerWhitespace()),
+    grammar.SentenceTokenizerMarkovify(),
 ])
 def test_text_making_with_blankline_tokenizer(each_text_maker, sentence_tokenizer, text_newlines):
     """ covers some of same ground as test_essential_properties, but uses tokenizer that only works with line-separated
@@ -97,6 +69,7 @@ def test_text_making_with_blankline_tokenizer(each_text_maker, sentence_tokenize
     :param text_newlines: 1 text at a time, but only fixture(s) where it is (mostly) newline separated
     """
     text_maker = each_text_maker
+    text_maker.sentence_tokenizer = sentence_tokenizer
 
     _input_tokenized = text_maker.input_text(text_newlines)
     sentences = text_maker.make_sentences(200)
@@ -138,6 +111,11 @@ def test_empty_and_null(each_text_maker, empty_or_null_string):
     text_maker.input_text(empty_or_null_string)
     sentences = text_maker.make_sentences(10)
     assert sentences is not None
+
+    # how each text maker handles empty strings or no-op whitespace - is un-defined, and intentionally "liberal,"
+    # basically deferring any cleanup etc until final re-join. so,
+    # each text maker is free to return [[],[],[]] vs [[''],['']] etc, BUT... we *DO* have an assertable expectation
+    # in this case, that when you flatten-and-filter, it should reduce to empty i.e. []
     assert not filter(None, iter_flatten(sentences))
 
 
@@ -165,6 +143,9 @@ def test_locked_after_input_text(each_text_maker):
 
     with pytest.raises(text_makers.TextMakerIsLockedException):
         text_maker.input_text("This should not be loaded")
+
+    with pytest.raises(text_makers.TextMakerIsLockedException):
+        text_maker.clone()  # can't clone() after input either, just in case that could cause astonishing state bugs
 
     output = text_maker.make_sentences(50)
 
@@ -203,3 +184,44 @@ def test_avoid_pollution_between_instances(each_text_maker):
 
     assert 'Input' in str(text_maker_2.make_sentences(10))
     assert 'Input' not in str(text_maker_1.make_sentences(10))
+
+
+def test_factory():
+    """ this already gets exercised in other tests, for the most part, but let's cover a few more cases
+    """
+    assert text_makers.create_text_maker()
+
+    # some plain ol lookup errors
+    with pytest.raises(KeyError):
+        text_makers._get_text_maker_class("invalid_nickname")
+
+    with pytest.raises(ValueError):
+        text_makers.create_text_maker("invalid_nickname")
+
+    # valid - passing in a tokenizer, which is just defined as something that implements tokenize()
+    class SomeCustomTokenizer(object):
+
+        def tokenize(self, text):
+            return [[word.strip() for word in sent.split()] for sent in text.splitlines()]
+
+    text_input = "woohoo that tokenizer quacks like a duck"
+    tm = text_makers.create_text_maker(sentence_tokenizer=SomeCustomTokenizer())
+    tm.input_text("woohoo that tokenizer quacks like a duck")
+    assert grammar.rejoin(tm.make_sentences(1)) == text_input
+
+    # not valid - passing in some other callable
+    with pytest.raises(ValueError):
+        text_makers.create_text_maker(sentence_tokenizer=int)
+
+
+def test_mismatched_ngram_size_for_crude():
+    # quick test for a failure mode that is important, but wasn't covered before
+    ngram_size = 2
+    tokenize = grammar.SentenceTokenizerWhitespace().tokenize
+    model = _crude_markov.crude_markov_chain(
+            sentences_as_word_lists=tokenize("foo bar baz"),
+            ngram_size=ngram_size)
+
+    with pytest.raises(ValueError):
+        generator = _crude_markov.iter_make_sentences(model, count=10, ngram_size=ngram_size + 1)
+        generator.next()

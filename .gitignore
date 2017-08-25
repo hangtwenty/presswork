@@ -2,6 +2,10 @@
 # but I don't mind having redundant info across .gitignores to avoid stupid mistakes ;-)
 
 dev_*
+.env
+
+# hypothesis property-based testing framework
+.hypothesis
 
 # ======================================================================== #
 # NLTK
@@ -11,9 +15,7 @@ punkt/
 # ======================================================================== #
 # Python: https://github.com/github/gitignore/blob/master/Python.gitignore #
 # ======================================================================== #
-# with additions
 
-.env
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
