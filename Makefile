@@ -53,7 +53,7 @@ lint: ## check style with flake8
 test: ## run tests quickly with the default Python
 	py.test
 
-test-all: ## run tests on every Python version with tox
+test-tox: ## run tests in virtualenv(s) and/or with different python versions, with tox
 	tox
 
 coverage: ## check code coverage quickly with the default Python
