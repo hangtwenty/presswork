@@ -31,6 +31,8 @@ usage notes -- TextMaker & subclasses are the main *entry* point
         u'This text was input to a customized text maker'
         >>> # TODO demonstrate using other Joiners
 
+        >>> # TODO joiners, proofreaders.
+
     * composition is encouraged for putting together further variants. this can be done on the fly.
         attributes such as TextMaker.strategy are *not* protected, so they can be accessed directly and customized.
 
@@ -99,7 +101,7 @@ class BaseTextMaker(object):
     See also: overall design notes at the header of the module, which covers TextMakers as well as collaborators.
     """
 
-    def __init__(self, ngram_size=constants.DEFAULT_NGRAM_SIZE, sentence_tokenizer=None):
+    def __init__(self, ngram_size=constants.DEFAULT_NGRAM_SIZE, sentence_tokenizer=None, joiner=None):
         """
         :param ngram_size: state size AKA window size AKA N-gram size.
             this needs to be known both at the generate/load of the model (i.e. markov chain),
@@ -111,17 +113,32 @@ class BaseTextMaker(object):
 
         note: the word_tokenizer strategy is pluggable too, but it is something you attach to a sentence_tokenizer.
         i.e. sentence_tokenizer=SentenceTokenizer(word_tokenizer=WordTokenizer). more details in `grammar` module.
+
+        :param joiner: if not given, uses a default. this can be one of the joiners from the `grammar` module,
+            or something that implements `.join()` for a list of word-lists (same structure as sentence_tokenizer)
         """
         self._ngram_size = ngram_size
 
         if not sentence_tokenizer:
             logger.debug("no sentence_tokenizer argument given, defaulting to cheapest tokenizers")
-            sentence_tokenizer = grammar.SentenceTokenizerWhitespace()
+            sentence_tokenizer = grammar.create_sentence_tokenizer("just_whitespace")
 
         if callable(getattr(sentence_tokenizer, "tokenize", None)):
             self.sentence_tokenizer = sentence_tokenizer
         else:
             raise ValueError("sentence_tokenizer must implement a tokenize() method")
+
+        if not joiner:
+            joiner = grammar.create_joiner("just_whitespace")
+
+        if callable(getattr(joiner, "join", None)):
+            self.joiner = joiner
+        else:
+            raise ValueError("joiner must implement a join() method")
+
+        # So far with only 1 strategy for this and only 1 planned, not exposing via argument,
+        # just putting the default here.
+        self.proofreader = grammar.StringProofreader()
 
         self._locked = False
 
@@ -165,6 +182,20 @@ class BaseTextMaker(object):
             typically passed in from self.sentence_tokenizer.tokenize()
         """
         raise NotImplementedError()  # pragma: no cover
+
+    def join(self, sentences_as_word_lists, proofread=True):
+        """ join back together to a string. convenience method, that simply forwards to `self.joiner.join()`
+        :param sentences_as_word_lists: the output from `self.make_sentences()`
+        :param proofread: whether to call `self.proofreader.format()` afterwards.
+        :return: the string, ready for reading, display, etc.
+        :rtype: basestring
+
+        >>> # TODO show calling join() both with proofread=True and proofread=False
+        """
+        result = self.joiner.join(sentences_as_word_lists)
+        if proofread:
+            result = self.proofreader.format(result)
+        return result
 
     @property
     def ngram_size(self):
@@ -311,18 +342,22 @@ def _get_text_maker_class(name_or_nickname):
 def create_text_maker(
         strategy=DEFAULT_TEXT_MAKER_NICKNAME,
         sentence_tokenizer=None,
+        joiner=None,
         input_text=None,
-        ngram_size=constants.DEFAULT_NGRAM_SIZE, ):
+        ngram_size=constants.DEFAULT_NGRAM_SIZE,
+):
     """ convenience factory to just "gimme a text maker" without knowing exact module layout. nicknames supported.
 
     rationale: I *do* want an easy way for callers to make these, but I want to keep the classes minimal -
     little to no special logic in the constructors.
 
-    :param input_text: the input text to load into the TextMaker class. (if not given, you can load it later.)
-    :param strategy: (optional) specific nickname of class to use e.g. 'crude', 'pymc' 'markovify'
+    :param strategy: specific nickname of class to use e.g. 'crude', 'pymc' 'markovify'
         can also just pass in an exact class. if not given, will use the default.
-    :param sentence_tokenizer: i.e. 'nltk', 'whitespace', or specific customized instance.
-        if not given, does not override, and the TextMaker class will use its default.
+    :param sentence_tokenizer: (optional) an instance of sentence tokenizer - or a nickname such as
+        'nltk', 'just_whitespace'. if not given, a TextMaker class will just use its default.
+    :param joiner: (optional) an instance of joiner - or a nickname such as 'just_whitespace', 'moses'
+    :param input_text: (optional) the input text to load into the TextMaker class.
+        (if not given, can be loaded later load it later.)
     """
     text_maker_kwargs = {}
 
@@ -339,9 +374,18 @@ def create_text_maker(
             ASentenceTokenizerClass = grammar.tokenizer_classes_by_nickname[sentence_tokenizer]
             sentence_tokenizer = ASentenceTokenizerClass()
         except KeyError:
-            sentence_tokenizer = sentence_tokenizer
+            pass
 
         text_maker_kwargs["sentence_tokenizer"] = sentence_tokenizer
+
+    if joiner:
+        try:
+            AJoinerClass = grammar.joiner_classes_by_nickname[joiner]
+            joiner = AJoinerClass()
+        except KeyError:
+            pass
+
+        text_maker_kwargs["joiner"] = joiner
 
     text_maker = ATextMakerClass(ngram_size=ngram_size, **text_maker_kwargs)
 

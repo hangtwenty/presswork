@@ -36,10 +36,10 @@ from presswork.text import text_makers
                    "'crude' is crude and limited. ",
               default="markovify")
 @click.option('-t', '--tokenize-strategy',
-              type=click.Choice(['nltk', 'whitespace']),
+              type=click.Choice(['nltk', 'just_whitespace']),
               help="which strategy to use for tokenizing the input text before training the model. "
                    "'nltk' uses NLTK's recommended sentence & word tokenizers (Punkt & Treebank). "
-                   "'whitespace' will consider sentences to be line separated, and words whitespace separated. ",
+                   "'just_whitespace' will consider sentences to be line separated, and words whitespace separated. ",
               default='nltk')
 @click.option('-e', '--input-encoding', help="encoding of the input text.", default='utf-8', show_default=True)
 @click.option('-E', '--output-encoding', help="encoding of the output text.", default='utf-8', show_default=True)

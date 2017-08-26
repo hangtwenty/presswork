@@ -9,7 +9,7 @@ at the time of writing there are two sanitization filters in use:
     - "massage" inputs so that even if they have invalid, mixed encodings, we still coerce to Unicode
         with minimal information lost
 
-to add other filter functions, just add functions to SANITIZERS filter list.
+to add other filter format_functions, just add format_functions to SANITIZERS filter list.
 
 (exploratory testing yielded undesirable behavior when feeding in null bytes and so on.)
 

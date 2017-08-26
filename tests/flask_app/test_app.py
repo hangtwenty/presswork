@@ -43,7 +43,7 @@ def test_index_submit_deterministic(testapp):
     response = testapp.post('/', data=dict(
             input_text=input_text * 10000,
             text_maker_strategy='crude',
-            tokenizer_strategy='whitespace',
+            tokenizer_strategy='just_whitespace',
             ngram_size=2,
             count_of_sentences_to_make=100,
     ))
@@ -56,7 +56,7 @@ def test_index_submit_deterministic(testapp):
 
 
 @pytest.mark.parametrize('ngram_size', range(2, 4))
-@pytest.mark.parametrize('tokenizer_strategy', ['whitespace', 'nltk', 'markovify'])
+@pytest.mark.parametrize('tokenizer_strategy', ['just_whitespace', 'nltk', 'markovify'])
 @pytest.mark.parametrize('text_maker_strategy', ['crude', 'pymc', 'markovify'])
 def test_index_submit_thorough(testapp, tokenizer_strategy, text_maker_strategy, ngram_size, text_any):
     """ Tests a submission of various fixtures and various parameters"""
@@ -103,7 +103,7 @@ def test_invalid_strategies_chosen(testapp):
     response = testapp.post('/', data=dict(
             input_text="yada yada",
             text_maker_strategy="pymc",  # valid
-            tokenizer_strategy="whitespace",  # valid
+            tokenizer_strategy="just_whitespace",  # valid
             ngram_size=2,
             count_of_sentences_to_make=1,
     ))
@@ -124,7 +124,7 @@ def test_invalid_strategies_chosen(testapp):
     response = testapp.post('/', data=dict(
             input_text="yada yada yada",
             text_maker_strategy="invalid",  # invalid
-            tokenizer_strategy="whitespace",  # valid
+            tokenizer_strategy="just_whitespace",  # valid
             ngram_size=2,
             count_of_sentences_to_make=1,
     ))
@@ -135,7 +135,7 @@ def test_invalid_strategies_chosen(testapp):
     response = testapp.post('/', data=dict(
             input_text="yada yada yada",
             text_maker_strategy="invalid",  # valid
-            tokenizer_strategy="whitespace",  # valid
+            tokenizer_strategy="just_whitespace",  # valid
             ngram_size="\x02",
             count_of_sentences_to_make=1,
     ))

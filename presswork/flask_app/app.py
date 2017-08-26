@@ -25,6 +25,7 @@ app.config['SECRET_KEY'] = str(uuid.uuid4())
 # template filters are a safer way to convert whitespace to HTML, without turning off escaping
 app.add_template_filter(template_filters.newlines_to_br, name="newlines_to_br")
 app.add_template_filter(template_filters.tabs_to_nbsp, name="tabs_to_nbsp")
+app.add_template_filter(template_filters.multispaces_to_nbsp, name="multispaces_to_nbsp")
 
 logger = logging.getLogger('presswork')
 
@@ -57,7 +58,7 @@ class MarkovChainTextMakerForm(FlaskForm):
 
     tokenizer_strategy = StringField(
             "Tokenizer Strategy | choices: {} | NLTK is most versatile but slower. Markovify tokenizer "
-            "is fast but narrow. (Only use 'whitespace' tokenizer when your input is 1 sentence per line.)".format(
+            "is fast but narrow. (Only use 'just_whitespace' tokenizer when your input is 1 sentence per line.)".format(
                     ", ".join(grammar.TOKENIZER_NICKNAMES)),
             validators=[validators.InputRequired(), validators.Length(max=20), ],
             default='nltk')

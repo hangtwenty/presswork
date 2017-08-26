@@ -26,7 +26,6 @@ def test_markovify_does_not_stringify_too_soon(text_easy_deterministic):
 
     # Markovify itself stringifies before returning. Confirm we have disabled that
     assert not isinstance(markovify_lite.make_sentence(), basestring)
-    assert isinstance(markovify_lite.make_sentence(), collections.Container)
 
     # hitting one more un-covered line or two - stringifying methods that our wrapper neutralizes to no-ops
     assert markovify_lite.sentence_join(tokenized) == tokenized

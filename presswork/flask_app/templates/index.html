@@ -28,7 +28,7 @@
     {% if generated_text %}
     <h4 id="generated-text-title">{{ generated_text_title }}</h4>
     <div id="generated-text-body">
-      {{ generated_text | newlines_to_br | tabs_to_nbsp }}
+      {{ generated_text | newlines_to_br | tabs_to_nbsp | multispaces_to_nbsp }}
     </div>
     {% endif %}
   </div>

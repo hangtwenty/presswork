@@ -32,14 +32,14 @@ def test_cli_large_input_from_file(runner, text_newlines, strategy, ngram_size):
     result = runner.invoke(cli.main, catch_exceptions=False, args=[
         '--input-filename', input_filename,
         '--strategy', strategy,
-        '--tokenize-strategy', 'whitespace',
+        '--tokenize-strategy', 'just_whitespace',
         '--ngram-size', ngram_size,
     ])
     output_text = result.output.strip()
     assert output_text
 
     output_text = result.output.strip()
-    tokenize = grammar.create_sentence_tokenizer('whitespace').tokenize
+    tokenize = grammar.create_sentence_tokenizer('just_whitespace').tokenize
 
     word_set_comparison = helpers.WordSetComparison(
             generated_tokens=tokenize(output_text), input_tokenized=tokenize(input_text))
@@ -57,11 +57,11 @@ def test_cli_large_input_from_stdin(runner, text_newlines):
 
     result = runner.invoke(cli.main, catch_exceptions=False, input=input_text, args=[
         '--input-filename', '-',
-        '--tokenize-strategy', 'whitespace',
+        '--tokenize-strategy', 'just_whitespace',
     ])
 
     output_text = result.output.strip()
-    tokenize = grammar.create_sentence_tokenizer('whitespace').tokenize
+    tokenize = grammar.create_sentence_tokenizer('just_whitespace').tokenize
 
     word_set_comparison = helpers.WordSetComparison(
             generated_tokens=tokenize(output_text), input_tokenized=tokenize(input_text))

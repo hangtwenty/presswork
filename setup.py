@@ -57,6 +57,9 @@ with codecs.open(os.path.join(HERE, 'requirements_dev.txt'), encoding='utf-8') a
 _required_nltk_corpora = [
     'punkt',
     'treebank',
+
+    # required by MosesDetokenizer - 'misc/perluniprops' aka 'perluniprops'
+    'perluniprops'
 ]
 
 class InstallWithNLTKCorpora(SetuptoolsInstallCommand):
