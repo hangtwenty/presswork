@@ -35,43 +35,64 @@ from presswork.text import text_makers
                    "'pymc' is based on PyMarkovChain. "
                    "'crude' is crude and limited. ",
               default="markovify")
-@click.option('-t', '--tokenize-strategy',
-              type=click.Choice(['nltk', 'just_whitespace']),
+@click.option('-t', '--tokenize',
+              type=click.Choice(grammar.TOKENIZER_NICKNAMES),
               help="which strategy to use for tokenizing the input text before training the model. "
                    "'nltk' uses NLTK's recommended sentence & word tokenizers (Punkt & Treebank). "
-                   "'just_whitespace' will consider sentences to be line separated, and words whitespace separated. ",
+                   "'just_whitespace' will consider sentences to be line separated, and words whitespace separated. "
+                   "'markovify' uses both punctuation and whitespace; may be faster than 'nltk', but less precise.",
               default='nltk')
-@click.option('-e', '--input-encoding', help="encoding of the input text.", default='utf-8', show_default=True)
+@click.option('-j', '--join',
+              type=click.Choice(grammar.JOINER_NICKNAMES),
+              help="which strategy to use for joining the text back together, before output. "
+                   "'nltk' uses NLTK's recommended de-tokenizer, MosesDetokenizer. "
+                   "'random_indent' is like 'nltk' but randomly indents lines. "
+                   "'random_enjamb' is like 'random_indent' but also randomly breaks sentences over lines. "
+                   "'just_whitespace' just uses newlines and spaces. ",
+              default='nltk')
+@click.option('-e', '--input-encoding',
+              help="encoding of the input text. uses Python's encoding names. one special case - "
+                   "if you change to 'raw', it'll try to use Python/shell defaults.",
+              default='utf-8',
+              show_default=True)
 @click.option('-E', '--output-encoding', help="encoding of the output text.", default='utf-8', show_default=True)
-def main(ngram_size, strategy, tokenize_strategy, input_filename, input_encoding, output_encoding, count,):
+def main(ngram_size, strategy, tokenize, join, input_filename, input_encoding, output_encoding, count, ):
     logger = setup_logging()
     logger.debug("CLI invocation variable dump: {}".format(locals()))
 
     if input_filename == '-':
-        UTF8Reader = codecs.getreader(input_encoding)
-        sys.stdin = UTF8Reader(sys.stdin)
-        input_text = sys.stdin.read()
+        if input_encoding == "raw":
+            input_text = sys.stdin.read()
+        else:
+            UTF8Reader = codecs.getreader(input_encoding)
+            sys.stdin = UTF8Reader(sys.stdin)
+            input_text = sys.stdin.read()
     else:
-        with codecs.open(input_filename, 'r', encoding=input_encoding) as f:
-            input_text = f.read()
+        if input_encoding == "raw":
+            with open(input_filename, 'r') as f:
+                input_text = f.read()
+        else:
+            with codecs.open(input_filename, 'r', encoding=input_encoding) as f:
+                input_text = f.read()
 
     logger.debug("CLI invocation variable dump again: {}".format(locals()))
     text_maker = text_makers.create_text_maker(
             strategy=strategy,
-            sentence_tokenizer=tokenize_strategy,
+            sentence_tokenizer=tokenize,
+            joiner=join,
             input_text=SanitizedString(input_text),
             ngram_size=ngram_size)
 
-    # TODO here, we should either not "know" about sentences & joining, or it should be selectable as CLI arg
-    sentences = text_maker.make_sentences(count)
-    result = grammar.rejoin(sentences)
+    output_sentences = text_maker.make_sentences(count)
+    output_text = text_maker.join(output_sentences)
+    final_result = text_maker.proofread(output_text)
 
     UTF8Writer = codecs.getwriter(output_encoding)
     sys.stdout = UTF8Writer(sys.stdout)
 
-    sys.stdout.write(result)
+    sys.stdout.write(final_result)
     sys.stdout.write("\n")
 
 
-if __name__ == "__main__":   # pragma: no cover
+if __name__ == "__main__":  # pragma: no cover
     main()

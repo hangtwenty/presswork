@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-""" test TextMaker variants - esp. essential properties of markov chain text generators, and fundamental parity
+""" test TextMaker variants - esp. essential properties of markov chain text generators, and parity of the strategies
 """
 import pytest
 
@@ -32,11 +32,12 @@ def test_smoketest_common_phrase(each_text_maker):
 
 
 @pytest.mark.parametrize('ngram_size', range(2, 6))
+@pytest.mark.parametrize('joiner', map(grammar.create_joiner, grammar.JOINER_NICKNAMES))
 @pytest.mark.parametrize('sentence_tokenizer', [
-    grammar.SentenceTokenizerPunkt(word_tokenizer=grammar.WordTokenizerTreebank()),
-    grammar.SentenceTokenizerPunkt(word_tokenizer=grammar.WordTokenizerWhitespace()),
+    grammar.SentenceTokenizerNLTK(word_tokenizer=grammar.WordTokenizerNLTK()),
+    grammar.SentenceTokenizerNLTK(word_tokenizer=grammar.WordTokenizerWhitespace()),
 ])
-def test_essential_properties_of_text_making(each_text_maker, ngram_size, sentence_tokenizer, text_any):
+def test_essential_properties_of_text_making(each_text_maker, ngram_size, sentence_tokenizer, joiner, text_any):
     """ confirm some essential known properties of text-making output, common to all the text makers
 
     :param each_text_maker: each text maker, injected by pytest from each_text_maker fixture.
@@ -55,12 +56,12 @@ def test_essential_properties_of_text_making(each_text_maker, ngram_size, senten
     sentences = text_maker.make_sentences(300)
 
     word_set_comparison = helpers.WordSetComparison(generated_tokens=sentences, input_tokenized=_input_tokenized)
-    assert word_set_comparison.output_is_subset_of_input
+    assert word_set_comparison.output_is_valid_strict()
 
 
 @pytest.mark.parametrize('sentence_tokenizer', [
     grammar.SentenceTokenizerWhitespace(word_tokenizer=grammar.WordTokenizerWhitespace()),
-    grammar.SentenceTokenizerWhitespace(word_tokenizer=grammar.WordTokenizerTreebank()),
+    grammar.SentenceTokenizerWhitespace(word_tokenizer=grammar.WordTokenizerNLTK()),
     grammar.SentenceTokenizerMarkovify(),
 ])
 def test_text_making_with_blankline_tokenizer(each_text_maker, sentence_tokenizer, text_newlines):
@@ -75,7 +76,8 @@ def test_text_making_with_blankline_tokenizer(each_text_maker, sentence_tokenize
     sentences = text_maker.make_sentences(200)
 
     word_set_comparison = helpers.WordSetComparison(generated_tokens=sentences, input_tokenized=_input_tokenized)
-    assert word_set_comparison.output_is_subset_of_input
+
+    assert word_set_comparison.output_is_valid_strict()
 
     # as a followup, let's double check that our comparison is valid (by confirming invalidated case would fail)
     _test_self_ensure_test_would_fail_if_comparison_was_invalid(
@@ -98,7 +100,7 @@ def test_easy_deterministic_cases_are_same_for_all_text_makers(all_text_makers, 
     # expected is that all text makers output same deterministic sentence for these inputs.
     # we can check that pretty elegantly by stringifying, calling set, and making sure their is only 1 unique output
     # (temporary dict var is not necessary for assertion - is just for ease of debugging when something goes wrong)
-    outputs_rejoined = {name: presswork.text.grammar.rejoin(output).strip() for name, output in outputs.items()}
+    outputs_rejoined = {name: grammar.JoinerWhitespace().join(output).strip() for name, output in outputs.items()}
     assert len(set(outputs_rejoined.values())) == 1
 
 
@@ -128,29 +130,42 @@ def _test_self_ensure_test_would_fail_if_comparison_was_invalid(generated_tokens
     """
     invalid_word_set_comparison = helpers.WordSetComparison(
             generated_tokens=generated_tokens + ["XXXXXXXXX_This_Token_Is_Not_In_Any_Input_Text_XXXXXXXXX"],
-            input_tokenized=input_tokenized,
-            quiet=True)
-    assert not invalid_word_set_comparison.output_is_subset_of_input
+            input_tokenized=input_tokenized)
+    assert not invalid_word_set_comparison.output_is_valid_strict()
     return True
+
+
+def test_sentence_starts_are_special(each_text_maker, text_newlines):
+    """ rules of markov chains for text gen, as these 3 strategies do it anyways - sentence starts are special
+
+    (in a very early version this rule got violated for a bit, so this is a regression test)
+    """
+    tm = each_text_maker
+    input_tokenized = tm.input_text(text_newlines)
+    gen_sentences = tm.make_sentences(100)
+    gen_starts = [filter(None, sentence)[0] for sentence in gen_sentences]
+    input_starts = [filter(None, sentence)[0] for sentence in input_tokenized]
+    for start in gen_starts:
+        assert start in input_starts
 
 
 # ------------------------------------------------------------------------------------------------
 # Following tests are more about avoiding usage issues (more than properties of the text making)
 # ================================================================================================
 def test_locked_after_input_text(each_text_maker):
-    text_maker = each_text_maker
-    text_maker.input_text("Foo bar baz. Foo bar quux.")
+    tm = each_text_maker
+    tm.input_text("Foo bar baz. Foo bar quux.")
 
     with pytest.raises(text_makers.TextMakerIsLockedException):
-        text_maker.input_text("This should not be loaded")
+        tm.input_text("This should not be loaded")
 
     with pytest.raises(text_makers.TextMakerIsLockedException):
-        text_maker.clone()  # can't clone() after input either, just in case that could cause astonishing state bugs
+        tm.clone()  # can't clone() after input either, just in case that could cause astonishing state bugs
 
-    output = text_maker.make_sentences(50)
+    output = tm.make_sentences(50)
 
-    assert "This" not in presswork.text.grammar.rejoin(output)
-    assert "loaded" not in presswork.text.grammar.rejoin(output)
+    assert "This" not in tm.join(output)
+    assert "loaded" not in tm.join(output)
 
 
 def test_cannot_change_ngram_size_after_inputting_text(each_text_maker):
@@ -186,32 +201,61 @@ def test_avoid_pollution_between_instances(each_text_maker):
     assert 'Input' not in str(text_maker_1.make_sentences(10))
 
 
-def test_factory():
+def test_factory_special_cases():
     """ this already gets exercised in other tests, for the most part, but let's cover a few more cases
     """
+    # happy path (not special, but always like to have a counter-example in a test case...)
     assert text_makers.create_text_maker()
+    assert text_makers.create_text_maker(
+            "crude", sentence_tokenizer="just_whitespace", joiner="just_whitespace", ngram_size=10)
 
-    # some plain ol lookup errors
+    class MyCustomTextMaker(text_makers.TextMakerCrude):
+        pass
+
+    my_custom_text_maker = text_makers.create_text_maker(
+            MyCustomTextMaker, sentence_tokenizer="just_whitespace", joiner="just_whitespace")
+
+    assert isinstance(my_custom_text_maker, MyCustomTextMaker)
+
+    # onto some invalid ones
+    with pytest.raises(ValueError):
+        text_makers.create_text_maker(None)
+
     with pytest.raises(KeyError):
         text_makers._get_text_maker_class("invalid_nickname")
 
-    with pytest.raises(ValueError):
+    with pytest.raises(KeyError):
         text_makers.create_text_maker("invalid_nickname")
 
-    # valid - passing in a tokenizer, which is just defined as something that implements tokenize()
-    class SomeCustomTokenizer(object):
+    with pytest.raises(KeyError):
+        text_makers.create_text_maker(sentence_tokenizer="invalid")
 
+    with pytest.raises(KeyError):
+        text_makers.create_text_maker(joiner="invalid")
+
+    with pytest.raises(KeyError):
+        text_makers.create_text_maker(joiner="invalid")
+
+    # valid - passing in a tokenizer, which is just defined as something that implements tokenize()
+    # notice that it doesn't subclass - duck typing should strictly care about that
+    class SomeCustomTokenizer(object):
         def tokenize(self, text):
             return [[word.strip() for word in sent.split()] for sent in text.splitlines()]
 
     text_input = "woohoo that tokenizer quacks like a duck"
     tm = text_makers.create_text_maker(sentence_tokenizer=SomeCustomTokenizer())
     tm.input_text("woohoo that tokenizer quacks like a duck")
-    assert grammar.rejoin(tm.make_sentences(1)) == text_input
+    assert tm.join(tm.make_sentences(1)) == text_input
 
-    # not valid - passing in some other callable
+    # not valid
     with pytest.raises(ValueError):
-        text_makers.create_text_maker(sentence_tokenizer=int)
+        text_makers.create_text_maker(sentence_tokenizer=lambda x: x)
+
+    # not valid - passing in some other instances that don't "quack" right/ don't implement required methods
+    with pytest.raises(ValueError):
+        text_makers.create_text_maker(sentence_tokenizer=object())
+    with pytest.raises(ValueError):
+        text_makers.create_text_maker(joiner=object())
 
 
 def test_mismatched_ngram_size_for_crude():

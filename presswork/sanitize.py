@@ -13,28 +13,42 @@ to add other filter format_functions, just add format_functions to SANITIZERS fi
 
 (exploratory testing yielded undesirable behavior when feeding in null bytes and so on.)
 
+Lastly... There *is* some redundant processing on input and output; *some* is necessary, *some* is a shim.
+I went down some ratholes trying to keep it only-the-necessary, but it was diminishing returns.
+I'll revisit some of this if I'm ever in a "regex mood" or "unicode mood" ... and contributions welcome :)
+
 more info & doctests below
 """
-
+import logging
 import re
 from UserString import UserString
 
 from bs4 import UnicodeDammit
 
-_all_control_char_numbers = range(0, 32) + range(127, 160)
-_char_numbers_besides_newlines = [c for c in _all_control_char_numbers if c not in (ord("\n"), ord('\n'))]
-all_control_chars = map(unichr, _all_control_char_numbers)
-control_chars_besides_newlines = map(unichr, _char_numbers_besides_newlines)
-
-re_control_chars = re.compile(u'[%s]' % re.escape(u''.join(all_control_chars)), flags=re.UNICODE)
-re_control_chars_besides_newlines = \
-    re.compile(u'[%s]' % re.escape(u''.join(control_chars_besides_newlines)), flags=re.UNICODE)
+logger = logging.getLogger("presswork")
 
 
+# TODO move this module into `text` and rename it to `clean`
+
+
+# TODO rename to CleanedInputString
+# noinspection PyMissingConstructor
 class SanitizedString(UserString):
-    """ sanitizes string upon input - unless it's already been sanitized.
+    """ cleans up string upon input - unless it's already been cleaned!
 
-    SanitizedString will avoid running redundantly, by checking type of the input (good for Very Big Strings)
+    SanitizedString will avoid running redundantly, by checking type of the input and not re-cleaning if
+    it's already this type. So no content has to be checked. (good for Very Big Strings)
+
+    What 'clean' means here - *not* 'clean' in any security related sense.
+    Rather, 'clean' for tokenization - and so, clean for training models.
+
+    All tokenizers I have tried - will behave badly with punctuation they don't understand.
+    For example, assume we are using a tokenizer that doesn't try to expand contractoins.
+    Even so, it may tokenize "don't" to ["don't"] -- but "don’t" (curly apostrophe) to ["don", "’", "t"].
+    When you end up training a model on that, then generating text from that ... you get cruft.
+
+    Aside from that case, we also want to make sure we can keep most Unicode, even if input has mixed encodings
+    (can't be choosy with found text!). Then while we're at it, we can get rid of extra null bytes etc too.
 
         >>> assert SanitizedString(u"hello") == u"hello"
         >>> assert isinstance(u"hello", unicode)
@@ -53,23 +67,95 @@ class SanitizedString(UserString):
         >>> assert unicode(SanitizedString(u"unicøde")) == u"unicøde"
     """
 
-    # noinspection PyMissingConstructor
-    def __init__(self, s):
-        # no call to super() is needed here; full override is intentional.
+    def __init__(self, s, cleaner_functions=None):
+        # no call to super() is needed in this case: override is intentional.
+
+        self.cleaner_functions = cleaner_functions or (
+            unicode_dammit,
+            lambda s: remove_control_characters(s, keep_newlines=True),
+        )
+
+        if simplify_quotes in self.cleaner_functions:
+            # I hate having to put this here, but I went down a total rat-hole trying to figure out what had broken,
+            # debugging every cleaner, tokenizer, and helper; failures in the test suite, no matter what.
+            # Finally tried turning this off *on the input*, and it was OK. Maddens me that I don't know why yet!
+            logger.warning(u"WARNING: Calling simplify_quotes on the input is considered iffy. Can cause some "
+                           u"real head-scratcher bugs. YMMV.")
+
         if isinstance(s, SanitizedString):
-            self.data = s.data[:]
+            self.data = s.data
         else:
-            for sanitizer in SANITIZERS:
-                s = sanitizer(s)
+            s = self._clean(s)
             self.data = s
+
+    def _clean(self, text):
+        for clean in self.cleaner_functions:
+            text = clean(text)
+        return text
 
     def unwrap(self):
         """ return internal string (useful when we need to pass to something that is over-strict about type-checking)
         """
-        return self.data
+        return unicode(self.data)
 
     def __unicode__(self):
         return unicode(self.data)
+
+
+class OutputProofreader(object):
+    """ final massaging of string before display; its concern should only be "proofreading typos" kind of changes.
+
+    this should only be used for final touchups to the text before display.
+    (*nothing* fancy here - fancy things should be done to the Sentences and Word-Lists, and/or done by the Joiners.
+    this should be a "dumb" final formatting step.)
+
+    >>> text = b'weird ``quotes” fixed floating ' ' punct gets ) deleted -- keep “dashes" though'.decode('utf8')
+    >>> print OutputProofreader().proofread(text)
+    weird "quotes" fixed floating  punct gets  deleted -- keep "dashes" though
+    """
+
+    def __init__(self, cleaner_functions=None):
+        self.cleaner_functions = cleaner_functions or (
+            simplify_quotes,
+            remove_floating_punctuation,
+        )
+
+    def proofread(self, text):
+        for clean in self.cleaner_functions:
+            text = clean(text)
+        return text
+
+
+_floating_punctuation_to_remove = """!"#$%&'()*+,.:;<=>?@[]^_`{}~"""
+re_floating_ascii_punctuation = re.compile(
+        u'(?<=\s)([%s]{1})(?=\s)' % re.escape(_floating_punctuation_to_remove),
+        flags=re.UNICODE)
+
+
+def remove_floating_punctuation(text):
+    """ Delete single characters of "floating" ASCII punctuation, with some exceptions.
+
+    The regex is the source of truth here so for exactly which ones are kept/removed, see there
+
+    (I went down a rathole trying to remove the _need_ to do this, before finally deciding that it is good enough
+    for the purposes of this project today. It may be worth revisiting: remove it, see if there's a better way)
+
+    >>> remove_floating_punctuation(u"hello ' I'm pleased   ' '  to meet ( and greet ) you (really, really !) ! ) ")
+    u"hello  I'm pleased      to meet  and greet  you (really, really !)   "
+    >>> remove_floating_punctuation(u"hello - I'm pleased -- ' '  to meet you. / know you")
+    u"hello - I'm pleased --    to meet you. / know you"
+    """
+    return re_floating_ascii_punctuation.sub(u"", text)
+
+
+_all_control_char_numbers = range(0, 32) + range(127, 160)
+_char_numbers_besides_newlines = [c for c in _all_control_char_numbers if c not in (ord("\n"), ord('\n'))]
+all_control_chars = map(unichr, _all_control_char_numbers)
+control_chars_besides_newlines = map(unichr, _char_numbers_besides_newlines)
+
+re_control_chars = re.compile(u'[%s]' % re.escape(u''.join(all_control_chars)), flags=re.UNICODE)
+re_control_chars_besides_newlines = \
+    re.compile(u'[%s]' % re.escape(u''.join(control_chars_besides_newlines)), flags=re.UNICODE)
 
 
 def remove_control_characters(string_or_unicode, keep_newlines=False):
@@ -110,35 +196,13 @@ def remove_control_characters(string_or_unicode, keep_newlines=False):
 
 
 def unicode_dammit(s, override_encodings=('utf-8', 'windows-1252', 'iso-8859-1', 'latin-1'), smart_quotes_to="ascii"):
-    """ using UnicodeDammit, "coerce" text to unicode. for example will replace 'smart quotes'. it's the lesser evil!
+    """ using bs4.UnicodeDammit, "coerce" text to unicode. replaces (some) 'smart quotes'. fixes (some) mixed encodings
 
-    just a wrapper around UnicodeDammit that sets defaults arguments/calls that make sense for current known uses.
-    but it will forward other **kwargs if given.
-
-    UnicodeDammit docs say exactly what it does: https://www.crummy.com/software/BeautifulSoup/bs4/doc/#unicode-dammit
-
-    can be destructive and drop characters that are incorrectly encoded. however it's the LEAST destructive option.
-    but we accept that tradeoff to take more input... without getting "mojibake" (nonsense from mixed encodings)
+    What's it do under the hood? The docs explain some, the source explains even more of course.
+    https://www.crummy.com/software/BeautifulSoup/bs4/doc/#unicode-dammit
 
         >>> with_smart_quotes = b"I just \x93love\x94 your word processor\x92s smart quotes"
         >>> assert unicode_dammit(with_smart_quotes) == 'I just "love" your word processor\\'s smart quotes'
-
-    Overrall UnicodeDammit is the right tool for the job, given the options available; where "the job" is to
-    try and preserve as much unicode as we can instead of limiting ourselves to ASCII... but not break on mixed
-    incodings. Inputs will often come from The Internet where they can be very messy. Even Project Gutenberg texts
-    are often messy with mixed encodings. So we accept the tradeoff of a somewhat difficult dependency, for benefit
-    of having Unicode and mixed-encoding support from very early on in this project.
-
-    Caveats: Mainly, it's a complicated dependency to manage, unless we make some changes both upstream & downstream.
-
-        (a) UnicodeDammit only ships with BeautifulSoup4 - that's a Bunch of Stuff we don't need.
-        (b) UnicodeDammit has a nice feature of progressive-enhancing to use `cchardet` or `chardet` if installed.
-        unfortunately this cannot be turned off, and at time of writing, `chardet` is proving very slow, and `cchardet`
-        has over-sensitive type checking that rejects valid inputs.
-
-    TODO: file github issue about "revisiting unicode approach" that can have some ideas for both (a) and (b).
-    TODO( issue += ) : a destructive fallback option: https://pypi.python.org/pypi/Unidecode
-    (less destructive than .decode(errors='ignore'), but still pretty destructive; reduces to ASCII.)
 
     :param override_encodings: why these defaults - in short, they are commonly seen in input texts I've played with.
         whether they are mixed or not. someday-maybe this can be configured with better control if needed.
@@ -148,7 +212,27 @@ def unicode_dammit(s, override_encodings=('utf-8', 'windows-1252', 'iso-8859-1',
     return cleaned
 
 
-SANITIZERS = (
-    unicode_dammit,
-    lambda s: remove_control_characters(s, keep_newlines=True),
-)
+def simplify_quotes(text):
+    """ Even though UnicodeDammit smart_quotes_to="ascii" takes care of many cases, some crap can still be left...
+
+    In addition to the smart-quotes, on *output* we also want to catch the case of `` -> " and '' -> "
+    (NLTK has some tokenizers that convert like that).
+
+    So, this can be used in the input cleaners chain, AFTER UnicodeDammit; it can also be used from OutputProofreader.
+
+        >>> text = b'Have some ``weird" “quotes” and curlies,”  won’t you please. Quotes are ‘fun’'.decode('utf8')
+        >>> print simplify_quotes(text)
+        Have some "weird" "quotes" and curlies,"  won't you please. Quotes are 'fun'
+        >>> print simplify_quotes(unichr(8220) + u"foo" + unichr(8221) + unichr(8216) + u"bar" + unichr(8217))
+        "foo"'bar'
+        >>> text = b'``weird" “quotes” aren’t very ‘fun’ I don’t think'.decode('utf8')
+        >>> print simplify_quotes(text)
+        "weird" "quotes" aren't very 'fun' I don't think
+    """
+    return (text
+            .replace(u"``", u'"')
+            .replace(u"''", u'"')
+            .replace(u'“', u'"')
+            .replace(u'”', u'"')
+            .replace(u'’', u"'")
+            .replace(u'‘', u"'"))

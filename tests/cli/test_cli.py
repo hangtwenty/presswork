@@ -21,33 +21,11 @@ from tests import helpers
 def runner():
     return CliRunner()
 
-@pytest.mark.parametrize('ngram_size', range(2, 4))
-@pytest.mark.parametrize("strategy", ['markovify', 'pymc', 'crude'])
-def test_cli_large_input_from_file(runner, text_newlines, strategy, ngram_size):
-    """ take in text fixture(s)... should be able to gobble up books no issue. from files by filename
-    """
-    input_filename = text_newlines.filename
-    input_text = text_newlines
 
-    result = runner.invoke(cli.main, catch_exceptions=False, args=[
-        '--input-filename', input_filename,
-        '--strategy', strategy,
-        '--tokenize-strategy', 'just_whitespace',
-        '--ngram-size', ngram_size,
-    ])
-    output_text = result.output.strip()
-    assert output_text
-
-    output_text = result.output.strip()
-    tokenize = grammar.create_sentence_tokenizer('just_whitespace').tokenize
-
-    word_set_comparison = helpers.WordSetComparison(
-            generated_tokens=tokenize(output_text), input_tokenized=tokenize(input_text))
-    assert word_set_comparison.output_is_subset_of_input
-
-
-def test_cli_large_input_from_stdin(runner, text_newlines):
-    """ take in text fixture(s)... should be able to gobble up books no issue. from stdin
+@pytest.mark.parametrize('ngram_size', [2, 3])
+@pytest.mark.parametrize('input_encoding', ['utf-8', 'raw'])
+def test_cli_large_input_from_stdin(runner, text_newlines, ngram_size, input_encoding):
+    """ take in text fixture(s)... should be able to gobble up books no issue. from stdin too.
     """
 
     # Click's CliRunner is very useful, but does seem to choke when "input=" (stdin) parameter is not perfectly
@@ -55,17 +33,54 @@ def test_cli_large_input_from_stdin(runner, text_newlines):
     # but it OK if the CLI expects clean/precise encodings. so we streamroll a bit here, but it's OK for *this* test.
     input_text = unicode(text_newlines, encoding='utf-8', errors='replace')
 
+    tokenizer_strategy = 'just_whitespace'
     result = runner.invoke(cli.main, catch_exceptions=False, input=input_text, args=[
         '--input-filename', '-',
-        '--tokenize-strategy', 'just_whitespace',
+        '--input-encoding', input_encoding,
+        '--tokenize', tokenizer_strategy,
+        '--join', 'nltk',
+        '--ngram-size', ngram_size,
     ])
 
     output_text = result.output.strip()
-    tokenize = grammar.create_sentence_tokenizer('just_whitespace').tokenize
 
-    word_set_comparison = helpers.WordSetComparison(
-            generated_tokens=tokenize(output_text), input_tokenized=tokenize(input_text))
-    assert word_set_comparison.output_is_subset_of_input
+    comparison = helpers.FrontendWordSetComparison.create(
+            generated_text=output_text,
+            input_text=input_text,
+            tokenizer=grammar.create_sentence_tokenizer(tokenizer_strategy))
+
+    assert comparison.output_is_valid_strict()
+
+
+@pytest.mark.parametrize("strategy", ['markovify', 'pymc', 'crude'])
+@pytest.mark.parametrize("tokenizer_strategy", grammar.TOKENIZER_NICKNAMES)
+@pytest.mark.parametrize("joiner_strategy", grammar.JOINER_NICKNAMES)
+@pytest.mark.parametrize('input_encoding', ['utf-8', 'raw'])
+def test_cli_large_input_from_file(
+        runner, text_newlines, strategy, joiner_strategy, tokenizer_strategy, input_encoding):
+    """ take in text fixture(s)... should be able to gobble up books no issue. from files by filename
+    """
+    input_filename = text_newlines.filename
+    input_text = text_newlines
+
+    result = runner.invoke(cli.main, catch_exceptions=False, args=[
+        '--input-filename', input_filename,
+        '--input-encoding', input_encoding,
+        '--strategy', strategy,
+        '--tokenize', tokenizer_strategy,
+        '--join', joiner_strategy,
+        '--ngram-size', 2,
+        '--count', 100
+    ])
+    output_text = result.output.strip()
+    assert output_text
+
+    comparison = helpers.FrontendWordSetComparison.create(
+            generated_text=output_text,
+            input_text=input_text,
+            tokenizer=grammar.create_sentence_tokenizer(tokenizer_strategy))
+
+    assert comparison.output_is_mostly_valid(tolerance=(1.0 / 100))
 
 
 def test_cli_default_strategy(runner):
@@ -106,22 +121,43 @@ def test_cli_choose_strategy(runner):
         assert result.exit_code == 0
         assert mock.called
 
+
 @pytest.mark.parametrize("strategy", ['markovify', 'pymc', 'crude'])
-def test_cli_empty_inputs(runner, strategy, empty_or_null_string):
+@pytest.mark.parametrize("tokenizer_strategy", grammar.TOKENIZER_NICKNAMES)
+@pytest.mark.parametrize("joiner_strategy", grammar.JOINER_NICKNAMES)
+def test_cli_empty_inputs(runner, strategy, joiner_strategy, tokenizer_strategy, empty_or_null_string):
     """ confirm nothing too weird happens from empty inputs or inputs of control chars like null byte etc
 
     (these inputs used to break the CLI! so this is a regression test.)
     """
     stdin = empty_or_null_string
-    result = runner.invoke(cli.main, input=stdin, catch_exceptions=False, args=['--strategy', strategy])
+    result = runner.invoke(cli.main, input=stdin, catch_exceptions=False, args=[
+        '--strategy', strategy,
+        '-j', joiner_strategy,
+        '-t', tokenizer_strategy
+    ])
     assert result.exit_code == 0
     assert result.output.strip() == ''
 
 
-def test_cli_invalid_strategy(runner):
+def test_cli_invalid_strategies(runner):
+    # valid
+    result = runner.invoke(cli.main, input="Foo bar foo baz")
+    assert result.exit_code == 0
+
+    # invalid
     result = runner.invoke(cli.main, input="Foo bar foo baz", args=['--strategy', 'invalid'])
     # (side note, it is odd that Click library uses 2 for invalid choices (http://tldp.org/LDP/abs/html/exitcodes.html)
     # but so be it, we'll stick with Click's defaults.)
+    assert result.exit_code == 2
+
+    # invalid
+    result = runner.invoke(cli.main, input="Foo bar foo baz", args=['-j', 'invalid'])
+    assert result.exit_code == 2
+    result = runner.invoke(cli.main, input="Foo bar foo baz", args=['-t', 'invalid'])
+    assert result.exit_code == 2
+
+    result = runner.invoke(cli.main, input="Foo bar foo baz", args=['-t', 'invalid', '-j', 'invalid', '-s', 'invalid'])
     assert result.exit_code == 2
 
 

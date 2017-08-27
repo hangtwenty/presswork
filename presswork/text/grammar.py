@@ -1,11 +1,10 @@
 # -*- coding: utf-8 -*-
 """ containers for sentences-of-words, plus Splitter/Tokenizer and Rejoiner utilities & strategies
 
-    >>> list(WordTokenizerWhitespace().tokenize('foo bar baz'))
-    ['foo', 'bar', 'baz']
-    >>> SentenceTokenizerNLTK().tokenize('Foo bar baz. Another sentence in the input.').unwrap()
-    [['Foo', 'bar', 'baz', '.'], ['Another', 'sentence', 'in', 'the', 'input', '.']]
-    >>> # TODO show the joiners too
+    >>> list(WordTokenizerWhitespace().tokenize(u'foo bar baz'))
+    [u'foo', u'bar', u'baz']
+    >>> SentenceTokenizerNLTK().tokenize(u'Foo bar baz. Another sentence in the input.').unwrap()
+    [[u'Foo', u'bar', u'baz', u'.'], [u'Another', u'sentence', u'in', u'the', u'input', u'.']]
 
 ------------------------------------------------------------------------------------
 design notes -- high level/ context. & compare/contrast to approach in similar libs
@@ -58,17 +57,16 @@ design notes -- Joiners
 """
 import logging
 import random
-import re
-import string
 from UserList import UserList
 
 import markovify
 import nltk
+from nltk.tokenize.casual import TweetTokenizer
 from nltk.tokenize.moses import MosesDetokenizer
 
-logger = logging.getLogger('presswork')
+from presswork import sanitize
 
-re_ascii_punctuation = re.compile(u'[%s]' % re.escape(string.punctuation), flags=re.UNICODE)
+logger = logging.getLogger('presswork')
 
 
 class BaseWordTokenizer(object):
@@ -180,57 +178,64 @@ class SentenceTokenizerMarkovify(BaseSentenceTokenizer):
         super(SentenceTokenizerMarkovify, self).__init__(word_tokenizer)
 
     def _tokenize_to_sentence_strings(self, text):
-        if hasattr(text, 'unwrap'):
-            text = text.unwrap()
+        text = sanitize.SanitizedString(text).unwrap()
         return markovify.splitters.split_into_sentences(text)
 
 
-class WordTokenizerTreebank(BaseWordTokenizer):
-    """ uses nltk.TreebankWordTokenizer for words. (NLTK's recommended word tokenizer as of 3.2.4 is Treebank.)
+class WordTokenizerNLTK(BaseWordTokenizer):
+    """ uses an NLTK tokenizer to tokenize a sentence into words.
 
-    When re-joining/de-tokenizing, this works best with JoinerMoses
+    When re-joining/de-tokenizing, this works best with JoinerNLTK.
+
+    Why the "TweetTokenizer"? NLTK's recommended word tokenizer as of 3.2.4 is Treebank, and I started with that,
+    and sustained for a while. But I couldn't get it to stop tokenizing contractions ("don't" -> "do n't"),
+    even when it seemed like I configured it right. The tokenizing of contractions has its uses in NLP in general,
+    but in our context here, it's not very useful, and presents big pains for testing.
+    TweetTokenizer is a good compromise, and it's actually pretty general purpose, despite its tongue-in-cheek name.
 
     http://www.nltk.org/api/nltk.tokenize.html
+    http://text-processing.com/demo/tokenize/
     """
 
     def __init__(self):
-        super(WordTokenizerTreebank, self).__init__()
-        self.strategy = nltk.TreebankWordTokenizer()
+        super(WordTokenizerNLTK, self).__init__()
+
+        self.strategy = TweetTokenizer(preserve_case=True, reduce_len=False, strip_handles=False)
 
     def tokenize(self, text):
         """
-        >>> # just getting coverage for .unwrap() line, which doesn't end up exercised by other tests
-        >>> from presswork.sanitize import SanitizedString
-        >>> WordTokenizerTreebank().tokenize(SanitizedString("Hello there!!!"))
-        [u'Hello', u'there', u'!', u'!', u'!']
+            >>> WordTokenizerNLTK().tokenize("It's a beautiful day today...")
+            [u"It's", u'a', u'beautiful', u'day', u'today', u'...']
+            >>> from presswork.sanitize import SanitizedString
+            >>> WordTokenizerNLTK().tokenize(SanitizedString("Hello there!!!"))
+            [u'Hello', u'there', u'!', u'!', u'!']
         """
-        if hasattr(text, 'unwrap'):
-            text = text.unwrap()
+        text = sanitize.SanitizedString(text).unwrap()
         return WordList(self.strategy.tokenize(text))
 
 
-class SentenceTokenizerPunkt(BaseSentenceTokenizer):
+class SentenceTokenizerNLTK(BaseSentenceTokenizer):
     """ uses NLTK's "Punkt" to tokenize sentences. (NLTK's recommended sentence tokenizer as of 3.2.4 is Punkt.)
 
-    Default pairing - WordTokenizerTreebank (the other NLTK 1st-recommended tokenizer, but for words.)
+    Default pairing - WordTokenizerNLTK (the other NLTK 1st-recommended tokenizer, but for words.)
 
-    When re-joining/de-tokenizing, this works best with JoinerMoses
+    When re-joining/de-tokenizing, this works best with JoinerNLTK
 
     http://www.nltk.org/api/nltk.tokenize.html
+    http://text-processing.com/demo/tokenize/
     """
 
     def __init__(self, word_tokenizer=None):
         if not word_tokenizer:
-            word_tokenizer = WordTokenizerTreebank()
+            word_tokenizer = WordTokenizerNLTK()
 
-        super(SentenceTokenizerPunkt, self).__init__(word_tokenizer)
+        super(SentenceTokenizerNLTK, self).__init__(word_tokenizer)
 
         # Punkt Sentence Tokenizer has a pretty funny "constructor", indeed... you just load a pickle.
         self.strategy = nltk.data.load('tokenizers/punkt/english.pickle')
 
     def _tokenize_to_sentence_strings(self, text):
-        if hasattr(text, 'unwrap'):
-            text = text.unwrap()
+        text = sanitize.SanitizedString(text).unwrap()
         return self.strategy.tokenize(text)
 
 
@@ -260,64 +265,71 @@ class Joiner(object):
     def join(self, sentences_as_word_lists):
         """ just wraps ._join_sentences(), adding a sanity check beforehand.
 
-        >>> import pytest
-        >>> with pytest.raises(ValueError): Joiner().join('wrong_data_structure')
-        >>> with pytest.raises(ValueError): Joiner().join(['wrong_data_structure'])
-        >>> joiner = Joiner(separate_sentences=" | ")
-        >>> print joiner.join([['this', 'is', 'the'], ['expected', 'data', 'structure']])
-        this is the | expected data structure
-        >>> assert joiner.join([[]]) == ""
-        >>> assert joiner.join([[""]]) == ""
+            >>> import pytest
+            >>> with pytest.raises(ValueError): Joiner().join('wrong_data_structure')
+            >>> with pytest.raises(ValueError): Joiner().join(['wrong_data_structure'])
+            >>> joiner = Joiner(separate_sentences=" | ")
+            >>> print joiner.join([['this', 'is', 'the'], ['expected', 'data', 'structure']])
+            this is the | expected data structure
+            >>> assert joiner.join([[]]) == ""
+            >>> assert joiner.join([[""]]) == ""
         """
         if sentences_as_word_lists:
             sentences_as_word_lists = SentencesAsWordLists.ensure(sentences_as_word_lists)
         return self._join_sentences(sentences_as_word_lists)
 
-    def _join_sentences(self, sentences_as_word_lists):
+    def _join_sentences(self, sentences):
         """  takes SentencesAsWordLists and "re-joins" or "de-tokenizes" into a string.
+
+            >>> joiner = Joiner(separate_sentences=" // ")
+            >>> assert joiner._join_sentences([[]]) == ""
+            >>> assert joiner._join_sentences(None) == ""
+            >>> print joiner._join_sentences([['this', 'is', 'the'], ['expected', 'data', 'structure']])
+            this is the // expected data structure
 
         :param sentences_as_word_lists: Should typically be a SentencesAsWordLists instance, but builtins of the same
             structure are A-OK.
         :type sentences_as_word_lists: SentencesAsWordLists
         :rtype: basestring
         """
-        if sentences_as_word_lists:
-            if len(sentences_as_word_lists) > 1:
-                result = self._join_words(sentences_as_word_lists[0]) + u"".join(
-                        (self.between_sentences() or u"") + self._join_words(sentence)
-                        for sentence in sentences_as_word_lists[1:]
+        if sentences:
+            if len(sentences) > 1:
+                result = self._join_word_seq(sentences[0]) + u"".join(
+                        (self.between_sentences() or u"") + self._join_word_seq(sentence)
+                        for sentence in sentences[1:]
                 )
             else:
-                result = self._join_words(sentences_as_word_lists[0])
+                result = self._join_word_seq(sentences[0])
         else:
             result = u""
+
         return result.strip()
 
-    def _join_words(self, word_list):
+    def _join_word_seq(self, word_list):
         # calls between_sentences() in between each - while this is extra calls for some joiner strategies,
         # overall it keeps things maximally flexible: between_sentences() can be overridden to return dynamic values
+        word_list = filter(None, word_list)
         if word_list:
             if len(word_list) > 1:
-                return u"".join(
-                        word + (self.between_words() or u"") for word in word_list[:-1]) + word_list[-1]
+                return word_list[0] + u"".join((self.between_words() or u"") + word for word in word_list[1:])
             else:
                 return word_list[0]
         else:
             return u""
 
-    def between_sentences(self):
-        """ for most subclasses: just return self._sentence_separator. However, quirky weird Joiners can override.
+    def between_words(self):
+        """ default is - just return self._word_separator. However, quirky weird Joiners can override.
         """
-        # TODO(->github-issues) Someday/Maybe it would be good to make this take argument (prev, current, next)
-        # so it could have context-sensitive logic!!!
+        return self._word_separator
+
+    def between_sentences(self):
+        """ default is - just return self._sentence_separator. However, quirky weird Joiners can override.
+        """
         return self._sentence_separator
 
-    def between_words(self):
-        """ for most subclasses: just return self._word_separator. However, quirky weird Joiners can override.
-        """
-        # TODO(->github-issues) Someday/Maybe it would be good to make this take argument (prev, current, next)
-        # so it could have context-sensitive logic!!!
-        return self._word_separator
+    def __repr__(self):  # pragma: no cover
+        return "{}(separate_sentences={!r}, separate_words={!r})".format(
+                self.__class__.__name__, self._sentence_separator, self._word_separator)
 
 
 class JoinerWhitespace(Joiner):
@@ -333,48 +345,55 @@ class JoinerWhitespace(Joiner):
                 separate_sentences=separate_sentences, separate_words=separate_words)
 
 
-class JoinerMoses(Joiner):
-    """ Wraps NLTK's Moses De-tokenizer. This is NLTK's recommended de-tokenizer.
+class JoinerNLTK(Joiner):
+    """ Wraps NLTK's Moses De-tokenizer. This is NLTK's recommended de-tokenizer at time of wirting.
 
-    NOTE: Whenever using NLTK's *tokenizers* (Punkt, Treebank) it is best to put through *this* strategy,
-    as those tokenizers separate punctuation out. That separation is good for markov-model-training,
+    NOTE: Whenever using any NLTK detokenizer, it is best to put back through *this* strategy (not 'just_whitespace'),
+    as those tokenizers separate punctuation out ... That separation is good for markov-model-training,
     but bad for display if left alone ("Lots of this . Extra paces ."). MosesDetokenizer handles it well.
 
     http://www.nltk.org/api/nltk.tokenize.html
 
-    >>> joiner = JoinerMoses(separate_sentences=" ")
+    >>> joiner = JoinerNLTK(separate_sentences=" ")
     >>> print joiner.join([['Foo', 'bar', 'baz', '.'], ['More', 'of', 'the', 'same.']])
     Foo bar baz. More of the same.
     >>> print joiner.join([['How', 'do', 'you', 'do', '?'], ['Fine,', 'you', '?']])
     How do you do? Fine, you?
     >>> assert joiner.join([[]]) == ""
     >>> assert joiner.join([[""]]) == ""
+    >>> print JoinerNLTK().join([["Do ", " not ", "  leave ", "extra", "spaces  ", ".", " Around", "punct .  " ]])
+    Do not leave extra spaces. Around punct.
+    >>> print JoinerNLTK().join([['text . . . is fun : very , very fun !! ! yada: yada blah ; hi']])
+    text... is fun: very, very fun!!! yada: yada blah; hi
+    >>> already_good = 'Unless you are a linguist who has studied garden path sentences, the answer is probably "no".'
+    >>> assert JoinerNLTK().join([already_good.split()]) == already_good
+
     """
 
-    def __init__(self, separate_sentences="\n", separate_words=" ", lang="en"):
-        """
-        :param lang: Passed to MosesDetokenizer, which supports various languages (see docs).
-        """
-        super(JoinerMoses, self).__init__(
+    def __init__(self,
+                 separate_sentences=" ",  # moses can be suitable for prose if we don't insert newlines
+                 separate_words=" "):
+        super(JoinerNLTK, self).__init__(
                 separate_sentences=separate_sentences, separate_words=separate_words)
-        self._moses_detokenizer = MosesDetokenizer(lang=lang)
 
-    def _join_words(self, word_list):
+        self.detokenizer = MosesDetokenizer(lang="en")
+
+    def _join_word_seq(self, word_list):
         # passing to moses detokenizer is simple ...
-        sentence_string = self._moses_detokenizer.detokenize(word_list, return_str=True)
+        sentence_string = self.detokenizer.detokenize(word_list, return_str=True)
 
         # ... but in our terms, MosesDetokenizer assumes separate_words=" ". That's OK in some case,
         # but we want it so other separators can be passed in; AND so that the between_words() hook is still respected.
-        # ... but to also respect custom word separator hook, we re-split & send to self._join_words
-        sentence_string = super(JoinerMoses, self)._join_words(word_list=sentence_string.split())
+        # ... but to also respect custom word separator hook, we re-split & send to self._join_word_list
+        sentence_string = super(JoinerNLTK, self)._join_word_seq(word_list=sentence_string.split())
 
         return sentence_string
 
 
-class JoinerMosesWithRandomIndent(Joiner):
+class JoinerNLTKWithRandomIndent(JoinerNLTK):
     """ want crude pseudopoetry? just add pseudorandom indentation! Default is (0-8)*2spaces.
 
-        >>> joiner = JoinerMosesWithRandomIndent(_random=random.Random(456))
+        >>> joiner = JoinerNLTKWithRandomIndent(_random=random.Random(456))
         >>> print joiner.join([["Expect", "some", "intense"], ["Indents."]] * 3)
         Expect some intense
                     Indents.
@@ -385,6 +404,9 @@ class JoinerMosesWithRandomIndent(Joiner):
         >>> print joiner.join([["Random", "runs"], ["How", "fun"]])
         Random runs
                   How fun
+        >>> print joiner.join([["We", "should", ","], ["still", ",", "not", "have", "space", "around", "punct", "."]])
+        We should,
+                      still, not have space around punct.
         >>> assert joiner.join([[]]) == ""
         >>> assert joiner.join([[""]]) == ""
     """
@@ -393,12 +415,12 @@ class JoinerMosesWithRandomIndent(Joiner):
         """
         :param _random: can pass in random.Random(...) (i.e. random with seed)
         """
-        super(JoinerMosesWithRandomIndent, self).__init__(
+        super(JoinerNLTKWithRandomIndent, self).__init__(
                 separate_sentences=separate_sentences, separate_words=separate_words)
         if _random:
             self.random = _random
         else:
-            self.random = random.random()
+            self.random = random.Random()
 
         self.indent_unit = (separate_words or u"") * 2
 
@@ -412,88 +434,62 @@ class JoinerMosesWithRandomIndent(Joiner):
         return self._sentence_separator + self._random_indent()
 
 
-class JoinerMosesWithRandomEnjambment(JoinerMosesWithRandomIndent):
+class JoinerNLTKWithRandomEnjambment(JoinerNLTKWithRandomIndent):
     """ want funkier pseudopoetry? don't just indent, enjamb! in addition to indenting, breaks sentences
 
-        >>> joiner = JoinerMosesWithRandomEnjambment(_random=random.Random(50))
+        >>> joiner = JoinerNLTKWithRandomEnjambment(_random=random.Random(52))
         >>> # note, the <BLANKLINE> below is a doctest thing, in real output it would be real blank line
         >>> print joiner.join([["Expect", "some", "intense"], ["Indents", "and", "enjamb-", "ments"]])
         Expect some
         <BLANKLINE>
-            intense
-                Indents and
+                intense
+                        Indents and enjamb-
         <BLANKLINE>
-                    enjamb-
-        <BLANKLINE>
-                      ments
-        >>> joiner = JoinerMosesWithRandomEnjambment(_random=random.Random(3))
+              ments
+        >>> joiner = JoinerNLTKWithRandomEnjambment(_random=random.Random(3))
         >>> print joiner.join([["Random", "runs"], ["How", "fun,", "how", "fun", "&", "done"]])
-        Random
-        <BLANKLINE>
-              runs
-                  How fun,
-        <BLANKLINE>
-                      how
-        <BLANKLINE>
-                        fun & done
+        Random runs
+                How fun, how fun
+                      & done
+        >>> joiner = JoinerNLTKWithRandomEnjambment(_random=random.Random(5))
+        >>> print joiner.join([["We", "should", ","], ["still", ",", "not", "have", "space", "around", "punct", "."]])
+        We should,
+                    still, not have space around
+                        punct.
         >>> assert joiner.join([[]]) == ""
         >>> assert joiner.join([[""]]) == ""
     """
 
     def __init__(self, separate_sentences="\n", separate_words=" ", _random=None):
-        super(JoinerMosesWithRandomEnjambment, self).__init__(
+        super(JoinerNLTKWithRandomEnjambment, self).__init__(
                 separate_sentences=separate_sentences, separate_words=separate_words, _random=_random)
 
-        self.enjambment_chance = 0.33
-        self.enjambment_extra_line_break_choices = [2, 2, 2, 4]
+        self.enjambment_chance = 0.2
+        self.enjambment_extra_line_break_choices = [1, 1, 2]
 
     def between_words(self):
         """ achieves 'enjambment' by breaking sentences - inserting newlines & indents between 'words' too
         :return:
         """
+        extra_whitespace = u""
         if self.random.random() < self.enjambment_chance:
             maybe_newline = self._sentence_separator * self.random.choice(self.enjambment_extra_line_break_choices)
-            return maybe_newline + self._random_indent().lstrip(self._sentence_separator)
+            extra_whitespace = maybe_newline + self._random_indent().lstrip(self._sentence_separator)
+
+        if extra_whitespace:
+            return extra_whitespace
         else:
             return self._word_separator
 
 
-re_closing_punctuation_preceded_by_space = re.compile(r'\s([!"\'%),-./:;?]|}~](?:\s|$))', flags=re.UNICODE)
-
-
-class StringProofreader(object):
-    """ final massaging of string before display. keep this dumb, only for last fixups.
-
-    This regex definitely isn't a cure-all for iffy formatting, maybe that's possible, for now I just want *something*
-
-    >>> print StringProofreader().format("Some tokenizer+joiner combos leave space around periods . Let 's fix that !")
-    Some tokenizer+joiner combos leave space around periods. Let's fix that!
-    >>> print StringProofreader().format('text . . . is fun : very , very fun !! ! yada: yada blah ; hi')
-    text... is fun: very, very fun!!! yada: yada blah; hi
-    """
-
-    def __init__(self, format_functions=None):
-        if format_functions:
-            self.format_functions = format_functions
-        else:
-            self.format_functions = [
-                self._remove_spaces_before_closing_punctuation,
-            ]
-
-    def format(self, string):
-        for function in self.format_functions:
-            string = function(string)
-        return string
-
-    def _remove_spaces_before_closing_punctuation(self, string):
-        """ Replace " . " with ". ", and so on, for other punctuation that probably ends sentences
-        or clauses.
-        """
-        return re.sub(re_closing_punctuation_preceded_by_space, r'\1', string)
-
-
 class WordList(UserList):
-    """ basically a list of strings, with helper methods that make sense for'words'
+    """ just a list of strings - with Just Enough sanity checking (yet still permitting duck typing)
+
+        >>> import pytest
+        >>> assert WordList(["some", "words"])
+        >>> with pytest.raises(ValueError): WordList([["oops", "you", "passed..."], ["a", "sentence", "list"]])
+        >>> from presswork import sanitize
+        >>> assert WordList([sanitize.SanitizedString("yee")])
     """
 
     def __init__(self, seq):
@@ -501,13 +497,6 @@ class WordList(UserList):
         self.sanity_check()
 
     def sanity_check(self):
-        """
-        >>> import pytest
-        >>> assert WordList(["some", "words"])
-        >>> with pytest.raises(ValueError): WordList([["oops", "you", "passed..."], ["a", "sentence", "list"]])
-        >>> from presswork import sanitize
-        >>> assert WordList([sanitize.SanitizedString("yee")])
-        """
         if self.data:
             first_value = self.data[0]
             if (not isinstance(first_value, basestring)) and (not hasattr(first_value, "lower")):
@@ -520,7 +509,22 @@ class WordList(UserList):
 
 
 class SentencesAsWordLists(UserList):
-    """ basically a list of lists of strings, with helper methods that make sense for 'sentences'
+    """ just a list of lists of strings - with Just Enough sanity checking (yet still permitting duck typing)
+
+        >>> import pytest
+        >>> with pytest.raises(ValueError): SentencesAsWordLists('wrong_data_structure ... a string')
+        >>> with pytest.raises(ValueError): SentencesAsWordLists(['wrong_data_structure', 'flat', 'list'])
+        >>> list_of_lists_of_strings = [["ok", "here", "are"], ["lists", "of", "words"]]
+        >>> assert SentencesAsWordLists(list_of_lists_of_strings) == list_of_lists_of_strings
+        >>> print repr(SentencesAsWordLists(list_of_lists_of_strings))
+        SentencesAsWordLists([['ok', 'here', 'are'], ['lists', 'of', 'words']])
+        >>> print repr(SentencesAsWordLists(list_of_lists_of_strings).unwrap())
+        [['ok', 'here', 'are'], ['lists', 'of', 'words']]
+        >>> assert SentencesAsWordLists.ensure(list_of_lists_of_strings) == list_of_lists_of_strings
+        >>> print SentencesAsWordLists.ensure(list_of_lists_of_strings).unwrap()
+        [['ok', 'here', 'are'], ['lists', 'of', 'words']]
+        >>> C = SentencesAsWordLists
+        >>> assert C.ensure(C.ensure(C.ensure(C.ensure((list_of_lists_of_strings))))) == list_of_lists_of_strings
     """
 
     def __init__(self, seq):
@@ -537,15 +541,9 @@ class SentencesAsWordLists(UserList):
             return cls(seq)
 
     def sanity_check(self):
-        """
-        >>> import pytest
-        >>> assert SentencesAsWordLists([["oops", "you", "passed..."], ["a", "sentence", "list"]])
-        >>> with pytest.raises(ValueError): SentencesAsWordLists(["oops", "it's", "a", "flat", "list", "of", "words"])
-        >>> with pytest.raises(ValueError): WordList([["oops", "you", "passed..."], ["a", "sentence", "list"]])
-        """
         if self.data:
             if isinstance(self.data[0], basestring) or hasattr(self.data[0], "lower"):
-                raise ValueError("should be list of lists-of-strings, appears to be list of strings")
+                raise ValueError("should be list-of-lists-of-strings, appears to be list of strings")
 
     def unwrap(self):
         """ return internal list (useful when we need to pass to something that is over-strict about type-checking)
@@ -556,16 +554,11 @@ class SentencesAsWordLists(UserList):
         except AttributeError:
             return [word_list for word_list in self.data]
 
+    def __repr__(self):
+        return u"SentencesAsWordLists({!r})".format(self.data)
+
 
 # ===============================================================
-
-# for when you just want a quick-and-dirty rejoiner
-rejoin = JoinerWhitespace().join
-
-# alias these since they are "NLTK recommended," and  outside of this module, caller shouldn't have to think about
-# subtleties of NLTK recommending (Punkt combined with Treebank)
-WordTokenizerNLTK = WordTokenizerTreebank
-SentenceTokenizerNLTK = SentenceTokenizerPunkt
 
 tokenizer_classes_by_nickname = {
     "nltk": SentenceTokenizerNLTK,
@@ -582,10 +575,11 @@ def create_sentence_tokenizer(nickname):
 
 joiner_classes_by_nickname = {
     "just_whitespace": JoinerWhitespace,
-    "moses": JoinerMoses,
-    "random_indent": JoinerMosesWithRandomIndent,
-    "random_enjamb": JoinerMosesWithRandomEnjambment,
+    "nltk": JoinerNLTK,
+    "random_indent": JoinerNLTKWithRandomIndent,
+    "random_enjamb": JoinerNLTKWithRandomEnjambment,
 }
+JOINER_NICKNAMES = joiner_classes_by_nickname.keys()
 
 
 def create_joiner(nickname):
