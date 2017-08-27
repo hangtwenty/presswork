@@ -1,15 +1,12 @@
 {# From flask-bootstrap: #}
-{# https://github.com/mbr/flask-bootstrap/blob/master/flask_bootstrap/templates/bootstrap/wtf.html  #}
+{# adapted from https://github.com/mbr/flask-bootstrap/blob/master/flask_bootstrap/templates/bootstrap/wtf.html in 2016 #}
 
 {% macro form_errors(form, hiddens=True) %}
   {%- if form.errors %}
     {%- for fieldname, errors in form.errors.items() %}
-      {%- if bootstrap_is_hidden_field(form[fieldname]) and hiddens or
-             not bootstrap_is_hidden_field(form[fieldname]) and hiddens != 'only' %}
-        {%- for error in errors %}
-          <div class="alert alert-warning" role="alert">{{error}}</div>
-        {%- endfor %}
-      {%- endif %}
+      {%- for error in errors %}
+        <div class="alert alert-warning" role="alert">{{error}}</div>
+      {%- endfor %}
     {%- endfor %}
   {%- endif %}
 {%- endmacro %}
@@ -111,7 +108,7 @@ the necessary fix for required=False attributes, but will also not set the requi
           {%- endfor %}
         {%- elif field.description -%}
           {% call _hz_form_wrap(horizontal_columns, form_type, required=required) %}
-            <div class="alert alert-warning">{{field.description|safe}}</div>
+            <div>{{field.description|safe}}</div>
           {% endcall %}
         {%- endif %}
       {%- else -%}
@@ -123,48 +120,9 @@ the necessary fix for required=False attributes, but will also not set the requi
             <div class="alert alert-warning">{{error}}</div>
           {%- endfor %}
         {%- elif field.description -%}
-          <div class="alert alert-warning">{{field.description|safe}}</div>
+          <div>{{field.description|safe}}</div>
         {%- endif %}
       {%- endif %}
   </div>
 {% endif %}
 {% endmacro %}
-
-{# valid form types are "basic", "inline" and "horizontal" #}
-{% macro quick_form(form,
-                    action="",
-                    method="post",
-                    extra_classes=None,
-                    role="form",
-                    form_type="basic",
-                    horizontal_columns=('lg', 2, 10),
-                    enctype=None,
-                    button_map={},
-                    id="") %}
-<form
-  {%- if action %} action="{{action}}"{% endif -%}
-  {%- if id %} id="{{id}}"{% endif -%}
-  {%- if method %} method="{{method}}"{% endif %}
-  class="form
-    {%- if extra_classes %} {{extra_classes}}{% endif -%}
-    {%- if form_type == "horizontal" %} form-horizontal
-    {%- elif form_type == "inline" %} form-inline
-    {%- endif -%}
-  "
-  {%- if enctype %} enctype="{{enctype}}"{% endif -%}
-  {%- if role %} role="{{role}}"{% endif -%}
-  >
-  {{ form.hidden_tag() }}
-  {{ form_errors(form, hiddens='only') }}
-
-  {%- for field in form %}
-    {% if not bootstrap_is_hidden_field(field) -%}
-      {{ form_field(field,
-                    form_type=form_type,
-                    horizontal_columns=horizontal_columns,
-                    button_map=button_map) }}
-    {%- endif %}
-  {%- endfor %}
-
-</form>
-{%- endmacro %}

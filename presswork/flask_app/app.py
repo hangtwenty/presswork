@@ -9,35 +9,22 @@ from flask import Flask, render_template
 from flask_wtf import FlaskForm
 from flask_wtf.csrf import CSRFProtect
 
-from wtforms import validators, StringField, IntegerField, ValidationError
+from wtforms import validators, StringField, IntegerField, ValidationError, TextAreaField
 
 from presswork import constants
 from presswork.sanitize import SanitizedString
 from presswork.text import grammar
 from presswork.text import text_makers
 
-from presswork.flask_app import template_filters
-
 app = Flask(__name__)
 csrf = CSRFProtect(app=app)
 app.config['SECRET_KEY'] = str(uuid.uuid4())
-
-# template filters are a safer way to convert whitespace to HTML, without turning off escaping
-app.add_template_filter(template_filters.newlines_to_br, name="newlines_to_br")
-app.add_template_filter(template_filters.tabs_to_nbsp, name="tabs_to_nbsp")
-app.add_template_filter(template_filters.multispaces_to_nbsp, name="multispaces_to_nbsp")
 
 logger = logging.getLogger('presswork')
 
 
 class MarkovChainTextMakerForm(FlaskForm):
-    input_text = StringField(
-            'Input text',
-            validators=[
-                validators.InputRequired(),
-                validators.Length(max=1000000)  # XXX: this limit was picked arbitrarily, not by observation nor testing
-            ]
-    )
+    input_text = TextAreaField('Input text', validators=[validators.InputRequired()])
 
     ngram_size = IntegerField(
             "N-gram size AKA state size AKA window size (increase for more 'rigid' modeling of input text)",
@@ -47,19 +34,22 @@ class MarkovChainTextMakerForm(FlaskForm):
     count_of_sentences_to_make = IntegerField(
             "Number of sentences to generate", [validators.NumberRange(min=1, max=3000)], default=50, )
 
-    # XXX really this should be a SelectField but WTForms was being the pain and I want to handle other things first.
-    # (while I like the micro-ness of Flask for purposes this, forms are often a pain...)
+    # XXX really this should be a SelectField but WTForms was being difficult and I want to handle other things first.
     text_maker_strategy = StringField(
-            "Markov Chain Strategy | choices: {} | Usually leave this as default. "
-            "If markovify gives you issues with Unicode try pymc. ".format(
+            "Markov Chain Strategy | choices: {} | markovify is first preference, pymc second. ".format(
                     ", ".join(text_makers.TEXT_MAKER_NICKNAMES)),
             validators=[validators.InputRequired(), validators.Length(max=20), ],
             default=text_makers.DEFAULT_TEXT_MAKER_NICKNAME)
 
     tokenizer_strategy = StringField(
             "Tokenizer Strategy | choices: {} | NLTK is most versatile but slower. Markovify tokenizer "
-            "is fast but narrow. (Only use 'just_whitespace' tokenizer when your input is 1 sentence per line.)".format(
+            "is fast but narrow. 'just_whitespace' is simplest but requires line-separated input.".format(
                     ", ".join(grammar.TOKENIZER_NICKNAMES)),
+            validators=[validators.InputRequired(), validators.Length(max=20), ],
+            default='nltk')
+
+    joiner_strategy = StringField(
+            "Joiner Strategy | choices: {}".format(", ".join(grammar.JOINER_NICKNAMES)),
             validators=[validators.InputRequired(), validators.Length(max=20), ],
             default='nltk')
 
@@ -75,39 +65,49 @@ class MarkovChainTextMakerForm(FlaskForm):
             raise ValidationError(
                     'tokenizer_strategy must be one of: {}'.format(", ".join(grammar.TOKENIZER_NICKNAMES)))
 
+    def validate_joiner_strategy(form, field):
+        joiner_strategy = field.data.lower()
+        if joiner_strategy not in grammar.JOINER_NICKNAMES:
+            raise ValidationError(
+                    'joiner_strategy must be one of: {}'.format(", ".join(grammar.JOINER_NICKNAMES)))
+
+    def debug_log(self):
+        if logger.isEnabledFor(logging.DEBUG):
+            for field in self:
+                logger.debug(u'[flask] form.{} :\n{}\n'.format(field.name, field.data))
+
 
 @app.route("/", methods=['GET', 'POST', ])
 def markov():
     form = MarkovChainTextMakerForm()
+    form.debug_log()
 
     if form.validate_on_submit():
         logger.info(u'[flask] received valid form submission')
 
-        # (Flask doesn't do forms, so you use WTForms. WTForms is great in some ways, but definitely verbose.)
-        ngram_size = form.ngram_size.data
-        input_text = SanitizedString(form.input_text.data)
-        text_maker_strategy = SanitizedString(form.text_maker_strategy.data)
-        tokenizer_strategy = SanitizedString(form.tokenizer_strategy.data)
-        count_of_sentences_to_make = form.count_of_sentences_to_make.data
-
-        # keep last submission in the text fields (supports 'accumulating' workflow)
-        for field_name in (
-                'input_text', 'ngram_size', 'count_of_sentences_to_make', 'text_maker_strategy', 'tokenizer_strategy'):
-            field = getattr(form, field_name)
-            if field.data:
-                field.default = field.data
-
-        logger.info(u'[flask] notable form parameters: ngram_size={}, count_of_sentences_to_make={} '
-                    u'(input text shown at DEBUG level)'.format(ngram_size, count_of_sentences_to_make))
+        data = {
+            field.name: (SanitizedString(field.data) if isinstance(field.data, basestring) else field.data)
+            for field in iter(form)
+        }
 
         text_maker = text_makers.create_text_maker(
-                input_text=input_text,
-                strategy=text_maker_strategy,
-                sentence_tokenizer=tokenizer_strategy,
-                ngram_size=ngram_size, )
+                input_text=data['input_text'],
+                strategy=data['text_maker_strategy'],
+                sentence_tokenizer=data['tokenizer_strategy'],
+                joiner=data['joiner_strategy'],
+                ngram_size=data['ngram_size'],
+        )
 
-        generated_text_body = grammar.rejoin(text_maker.make_sentences(count=count_of_sentences_to_make))
-        generated_text_title = grammar.rejoin(text_maker.make_sentences(count=1))
+        generated_text_title = text_maker.join(text_maker.make_sentences(count=1))
+        generated_text_body = text_maker.join(text_maker.make_sentences(count=data['count_of_sentences_to_make']))
+
+        generated_text_body = text_maker.proofread(generated_text_body)
+        generated_text_title = text_maker.proofread(generated_text_title)
+
+        for field in iter(form):
+            # make the fields 'sticky' by keeping values from last submission
+            if not field.name.lower().startswith('csrf'):
+                field.default = field.data
 
         return render_template(
                 'index.html', form=form, generated_text=generated_text_body, generated_text_title=generated_text_title)
@@ -116,18 +116,29 @@ def markov():
 
 
 if __name__ == "__main__":  # pragma: no cover
-    """ development-only server. will run in Flask's wonderful, wonderful debug mode if you give it "--debug"
+    """ development-only server. will run in Flask's wonderful, wonderful debug mode if you set "DEBUG" var beforehand
+
+    $ DEBUG=1 python presswork/flask_app/app.py 5000
     """
+    import datetime
     import os
     import sys
 
     from presswork.log import setup_logging
 
+    debug_mode = os.environ.get("DEBUG", None) is not None
+
     setup_logging()
+    if debug_mode:
+        logger.setLevel(logging.DEBUG)
 
     try:
-        port = sys.argv[1]
+        port = int(sys.argv[1])
     except IndexError:
         port = 5000
 
-    app.run('127.0.0.1', port=port, debug=(os.environ.get("DEBUG", None) is not None))
+    msg = u'[flask] started on {} at {}'.format(port, datetime.datetime.now())
+    logger.info(msg)
+    print msg
+
+    app.run('127.0.0.1', port=port, debug=debug_mode)
