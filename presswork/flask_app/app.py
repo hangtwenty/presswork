@@ -23,7 +23,13 @@ app.config['SECRET_KEY'] = str(uuid.uuid4())
 logger = logging.getLogger('presswork')
 
 
+def lower_or_empty(s):
+    return (s or u"").lower()
+
+
 class MarkovChainTextMakerForm(FlaskForm):
+    """ a form for the parameters to `text_makers.create_text_maker` (or most of them)
+    """
     input_text = TextAreaField('Input text', validators=[validators.InputRequired()])
 
     ngram_size = IntegerField(
@@ -39,6 +45,7 @@ class MarkovChainTextMakerForm(FlaskForm):
             "Markov Chain Strategy | choices: {} | markovify is first preference, pymc second. ".format(
                     ", ".join(text_makers.TEXT_MAKER_NICKNAMES)),
             validators=[validators.InputRequired(), validators.Length(max=20), ],
+            filters=[lower_or_empty],
             default=text_makers.DEFAULT_TEXT_MAKER_NICKNAME)
 
     tokenizer_strategy = StringField(
@@ -46,30 +53,30 @@ class MarkovChainTextMakerForm(FlaskForm):
             "is fast but narrow. 'just_whitespace' is simplest but requires line-separated input.".format(
                     ", ".join(grammar.TOKENIZER_NICKNAMES)),
             validators=[validators.InputRequired(), validators.Length(max=20), ],
+            filters=[lower_or_empty],
             default='nltk')
 
     joiner_strategy = StringField(
-            "Joiner Strategy | choices: {}".format(", ".join(grammar.JOINER_NICKNAMES)),
+            "Joiner Strategy | choices: {}".format(", ".join(grammar.joiner_classes_by_nickname.keys())),
             validators=[validators.InputRequired(), validators.Length(max=20), ],
+            filters=[lower_or_empty],
             default='nltk')
 
     def validate_text_maker_strategy(form, field):
-        text_maker_strategy = field.data.lower()
-        if text_maker_strategy not in text_makers.TEXT_MAKER_NICKNAMES:
+        if field.data not in text_makers.TEXT_MAKER_NICKNAMES:
             raise ValidationError(
                     'text_maker_strategy must be one of: {}'.format(", ".join(text_makers.TEXT_MAKER_NICKNAMES)))
 
     def validate_tokenizer_strategy(form, field):
-        tokenizer_strategy = field.data.lower()
-        if tokenizer_strategy not in grammar.TOKENIZER_NICKNAMES:
+        if field.data not in grammar.TOKENIZER_NICKNAMES:
             raise ValidationError(
                     'tokenizer_strategy must be one of: {}'.format(", ".join(grammar.TOKENIZER_NICKNAMES)))
 
     def validate_joiner_strategy(form, field):
-        joiner_strategy = field.data.lower()
-        if joiner_strategy not in grammar.JOINER_NICKNAMES:
+        if field.data not in grammar.joiner_classes_by_nickname.keys():
             raise ValidationError(
-                    'joiner_strategy must be one of: {}'.format(", ".join(grammar.JOINER_NICKNAMES)))
+                    'joiner_strategy must be one of: {}'.format(", ".join(
+                            grammar.joiner_classes_by_nickname.keys())))
 
     def debug_log(self):
         if logger.isEnabledFor(logging.DEBUG):
@@ -88,7 +95,7 @@ def markov():
         data = {
             field.name: (SanitizedString(field.data) if isinstance(field.data, basestring) else field.data)
             for field in iter(form)
-        }
+            }
 
         text_maker = text_makers.create_text_maker(
                 input_text=data['input_text'],
