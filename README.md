@@ -1,154 +1,255 @@
-presswork
-=============
+[![Test Coverage](https://codeclimate.com/github/hangtwenty/presswork/badges/coverage.svg)](https://codeclimate.com/github/hangtwenty/presswork/coverage)
+[![Code Climate](https://codeclimate.com/github/hangtwenty/presswork/badges/gpa.svg)](https://codeclimate.com/github/hangtwenty/presswork)
 
-This project was just for fun. It provides an easy-to-use text generator using Markov chains. You give it a bunch of text, it generates more text based on those models. It can be used from code, or you can locally run the [Flask](http://flask.pocoo.org) app and rapidly play around through your web browser. It is not utilitarian nor stable... but it's been fun! 
 
-For a Markov Chain text generation **library** that is a bit more practical (and used widely, though typically for 
- kicks as well) -- see [jsvine/markovify](https://github.com/jsvine/markovify)
+## what
 
-Goal was ease of use. Here's some easy usage from code:
+A workbench for generative text. For now, it's all about [Markov](https://blog.codinghorror.com/markov-and-you/)
+[Chains](https://en.wikipedia.org/wiki/Markov_chain). Given a bunch of text, generate "probable" sentences based
+on those models.
 
-    >>> from presswork import MarkovChainTextMaker
-    >>> text_maker = MarkovChainTextMaker("/tmp/markov")
-    >>> text_maker.database_init("Beautiful is better than ugly. Explicit is better than implicit.")
-    >>> print text_maker.make_sentences(2)
-    Explicit is better than ugly .  Beautiful is better than implicit .
+Currently offers:
 
-The local [Flask](http://flask.pocoo.org) app is better though. More details on both, below.
+* Workbench tool: **CLI** for piping in found text, piping out generated text (could be used with other tools)
+* Workbench tool: **Flask app** for jamming with text (for local usage)
+* At code level...
+    * Building blocks. Text generation is broken down into separate concerns. For each concern, strategies can be swapped.
+    * Markov Chain strategy is swappable
+        * [jsvine/markovify](https://github.com/jsvine/markovify) is the best for most uses, and it is the default.
+    * Also swappable: Tokenizer (parsing input text before giving to Markov Chain) and Joinier (un-parsing before output to the user)
 
-background
-==========
+I'd like to add other tools to the toolkit, building off of this foundation.
 
-* Purpose: generate some text - specifically I wanted to write some parodies of music reviews, specifically of some electronic and experimental music I love. I love the music, but the reviews can be a bit... funny. So I wanted to poke more fun. 
-    * I couple of posts, and hand some laughs with friends. Here: [Presswerk](http://presswerk.tumblr.com/). I was going to do more, but I turned my attention back to making new music.
-    * Code has been dormant since hacking things together at  Hackathon-ish setting in 2016.
-* **PLANNED**: I'll add other Markov Chain Text Maker implementations, make [jsvine/markovify](https://github.com/jsvine/markovify)  the default and the best option for most users. (The others are mostly here for a coding exercise.)
+## why
 
-setup (mostly normal)
-=========================
+Started for fun: I wanted to generate/write some [parodies of music reviews about experimental music](http://presswerk.tumblr.com/).
+(Poking fun at something I love.)
+
+I picked it back up to explore the "creative text generation" domain a bit more. 
+I separated some concerns, and experimented with different strategies for each concern.
+
+### example of mixing and matching
+
+With just a few things separated, we can already mix and match a bit.
+
+    $ presswork --input-filename *.txt
+    I feel lucky to have evolved flight and others have not. If history is any guide, we copied their interview process ...
+    #...
+
+    $ presswork --join just_whitespace < cat ~/found_texts/*
+    #...
+    An erroneous manual operation
+    Consequently the attempt to break the physical laws
+    #...
+
+    $ presswork --join random_enjamb -i *.txt
+    #...
+    The answer
+        is complicated,
+              and timidly said
+    That
+            ye may eat the flesh
+                    of all reality.
+
+    But we live in an artificial intelligence.
+            How could you live so blind
+            to your surroundings?
+    #...
+
+You may fiddle with the Markov Chain strategy, tokenizer strategy, and joiner strategy. Another important parameter
+is the [N-gram size](https://en.wikipedia.org/wiki/N-gram) (how "tightly" to model the input text).
+
+For example
+
+    $ presswork --strategy pymc --tokenize nltk --join random_indent --ngram-size 3 --input-encoding raw < *.txt
+
+    # or another example with short arguments
+    $ presswork -s markovify -t just_whitespace -j nltk -n 3 -e utf-8 -i senate-bills.txt
+
+To find out more:
+
+    $ presswork --help
+
+You can access the same options to mix and match, when using the local Flask app.
+CLI and Flask app both have help at hand, and you can explore the code and docs for deeper detail.
+
+### more about why/ looking forward
+
+I want to explore the "creative text generation" domain more. This pet project is just a start :-)
+
+What about...
+
+* other text generators?
+    * "modified Markov" where a model is edited by hand or series of interactive prompts, then put back in
+    * abuse TensorFlow one way or another
+* other joiners?
+    * instead of just indenting somewhat randomly, what if there were joiners that were context-aware,
+following some more structured rules?
+* we avoid joining back to text until final display. while the data is still structured (as sentences and words),
+what else could we "pipe" it through?
+    * various ways to `map()` and `filter()` the stream of generated sentences and words
+    * various ways to swap out certain words before output, i.e. use NLTK WordNet to find synonyms, and choose one that rhymes
+        with something recently output
+
+
+### why not/ alternatives
+
+This is undercooked! It's not on PyPI because you should only use it if you're cloning it, and getting your hands dirty.
+(If you end up enjoying it, or extending it, please get in touch! File issues! Etc! Cheers.)
+
+For a great Markov Chain text generation **library**,
+ use [`markovify`](https://github.com/jsvine/markovify). (It's one of the libs used here.)
+
+----
+
+## how
+
+Overall usage note - it can be maddening to get the models Just Right to always make great output.
+What I prefer: continually generate things, skim, and copy out the highlights to an editor.
+
+### Flask app usage
+
+Running the Flask app locally is easy.
+
+    $ python flask_app/app.py 5000
+                                 # pick any port. defaults to Flask's default (5000)
+
+    # or to run in Flask's wonderful debug mode, just set "DEBUG" variable
+    $ DEBUG=1 python flask_app/app.py
+
+Then in your web browser, go to http://localhost:5000, or whatever port, and play around.
+
+**Do not deploy this anywhere.** Thank you :-)
+
+### CLI usage
+
+Reads from files or stdin, accepts a few params.
+
+    $ presswork --help
+
+For best results, use a nice terminal with easy copy and paste right when you highlight text (I like iTerm2).
+
+### Python usage
+
+The short of it:
+
+* Everything has sane/ "preferred" defaults
+* But it mostly uses Composite Reuse to let you customize, mix and match
+
+There are loads of docstrings and doc tests, and it's probably not useful to demonstrate everything here,
+especially before the dust settles on the design.
+
+    >>> from presswork.text_makers import create_text_maker
+    >>> text_maker = create_text_maker(input_text=text, ngram_size=3)
+    >>> text_maker.make_sentences(100)
+    #...
+
+    >>> text_maker = create_text_maker(strategy="pymc", sentence_tokenizer="nltk", joiner="random_indent")
+    >>> text_maker.join(text_maker.make_sentences(100))
+    #...
+
+    >>> from presswork.text.grammar import SentenceTokenizerNLTK, WordTokenizerWhitespace
+    >>> from presswork.text_makers import TextMakerPyMarkovChain
+    >>> custom_tokenizer = SentenceTokenizerPyMarkovChain(word_tokenizer=WordTokenizerWhitespace())
+    >>> tm = TextMakerCrude(sentence_tokenizer=custom_tokenizer)
+    >>> tm.input_text("This text was input to a customized text maker")
+    >>> tm.join(tm.make_sentences(1)))
+    u'This text was input to a customized text maker'
+
+    >>> tm = create_tm(strategy="markovify")
+    >>> tm.input_text(...)
+
+
+### setup
 
 1. Grab this GitHub repository and `cd` in. (Not on PyPI because it's not utilitarian.)
 2. Create & activate your [virtualenv](https://virtualenv.pypa.io/en/latest/)
 3. install
-    - **quick:** `make install`. This will do `pip install`, then also install NLTK corpora dependencies.
-    - or **custom:** 
+    - **quick:** **`make install`**. This will do `pip install`, then also install NLTK corpora dependencies.
+    - or **custom:**
         1. `pip install .` to install `presswork` plus dependencies. (or `pip install -e .` for editable/development mode.)
         2. Download required [NLTK](http://www.nltk.org/) corpora.
             * `python setup.py install_with_nltk_corpora`
             * (If you need to change where the NLTK corpora install to, set `NLTK_DATA` (more info in `setup.py`))
 
 
-recommended usage: play with the web app locally
-===============
+----------------
 
-My preferred way to use this is to keep generating text, selectively grabbing the bits I like and copying out to a notepad... sometimes feeding things back in, sometimes adding in new source texts... but always sort of "collaging" between the source text, generated text, and so on. Entertaining results, regardless.
+## test coverage snapshot
 
-Running the Flask app locally is easy.
-
-    $ python flask_app/app.py 8080
-                                 # pick any port you want. defaults to Flask's default (5000)
-
-Then in your web browser, go to http://localhost:8080, or whatever port, and play around.
-
-Here are screenshots of an early version. I was playing with 
-[reviews of Oneohtrix Point Never's music, and more](http://presswerk.tumblr.com/).
-
-![Input to presswork web app](.readme_images/presswork_web_app_input.png)
-![Output from presswork web app](.readme_images/presswork_web_app_output.png)
-
-
-
-#### Caveats
-
-* Suitable only for local usage, **please** don't deploy it anywhere.
-* As currently written, I don't have the Markov database/corpora persisting between runs/submissions. That is, each time you submit text, it loads in, and generates and outputs; next submission is a clean slate. This was the maximum flexibility for a first cut, and it was the workflow I wanted. To include various source texts at once, just paste all in the input box (and to save that input for multiple rounds of generation, just select-all and copy, re-inputting as needed). If you want to "accumulate" text as you go, go ahead: continue feeding the output back into the input. Or combine output with other fresh inputs. YMMV but this was was exactly the kind of workflow as I was after for this frivolous purpose :-)
-* No performance testing or tuning. Large input takes longer to handle, so if you throw in whole books from Project Gutenberg it will hang a bit
-
-#### A similar workflow, that would get around the caveats
-
-To get around those caveats without addressing directly, switch to scripting and a text editor. Make a script - follow the usage examples seen in `flask_app` module, using `presswork` module. Have your script read from a file repeatedly. Edit that file in your favorite plaintext editor, frequently saving, maybe retriggering your script upon each save (many ways to do that). Less instant gratification to set up, but bit snappier and less messy, if for some reason you want to get serious about making silly text ;-)
-
-### More code details
-
-For more usage examples see `flask_app` as well as `tests/test_presswork.py`. Also, the code is pretty self-explanatory and has docstrings too.
-
-Note about storage/'database' - presswork persists the Markov model using `pickle` (you can choose what path). Its data structure is a dictionary of probabilities/scores, and functions. This entails that you have to use the same version of python to store the data and to restore the data - `pickle` changed between Python 2 and 3.
-
-### Test coverage snapshot
+One of the best things this has going for it -- thorough tests, and good coverage.
 
 ```
-$ py.test --cov presswork
-======================================= test session starts ========================================
-platform darwin -- Python 2.7.10, pytest-3.0.1, py-1.4.31, pluggy-0.3.1
-rootdir: /Users/mfloering/Workspace/presswork, inifile:
-plugins: cov-2.3.1
-collected 3 items
-
-tests/test_presswork.py ...
-
----------- coverage: platform darwin, python 2.7.10-final-0 ----------
-Name                     Stmts   Miss  Cover
---------------------------------------------
-presswork/__init__.py        1      0   100%
-presswork/presswork.py     131     18    86%
---------------------------------------------
-TOTAL                      132     18    86%
+Name                                                 Stmts   Miss  Cover   Missing
+----------------------------------------------------------------------------------
+presswork/__init__.py                                    0      0   100%
+presswork/__main__.py                                    0      0   100%
+presswork/cli/__init__.py                               40      0   100%
+presswork/cli/__main__.py                                0      0   100%
+presswork/constants.py                                   1      0   100%
+presswork/flask_app/__init__.py                          0      0   100%
+presswork/flask_app/app.py                              54      2    96%   76-77
+presswork/log/__init__.py                               17      0   100%
+presswork/sanitize.py                                   49      1    98%   82
+presswork/text/__init__.py                               0      0   100%
+presswork/text/grammar.py                              165      0   100%
+presswork/text/markov/__init__.py                        0      0   100%
+presswork/text/markov/_crude_markov.py                  66      0   100%
+presswork/text/markov/thirdparty/__init__.py             0      0   100%
+presswork/text/markov/thirdparty/_markovify.py          23      0   100%
+presswork/text/markov/thirdparty/_pymarkovchain.py      96      0   100%
+presswork/text/text_makers.py                          130      0   100%
+presswork/utils.py                                       9      0   100%
+----------------------------------------------------------------------------------
+TOTAL                                                  650      3    99%
+===================== 890 passed, 4 warnings in 139.43 seconds ====================
 ```
 
-what I would improve if I pick this back up
-============
+(Full disclosure, ~50 lines are excluded from coverage by `# pragma: nocover`. Without excluding those, coverage
+is about 92%.)
 
-This library is rudimentary and just for fun. If I pick it back up to play with it more, these are the changes I would make.
+## miscellaneous
 
-* Main code - PROBABLY swap out the default Markov implementation with using more robust implementation from [markovify](https://github.com/jsvine/markovify)
-    * Then wire up configurability improvements as noted below
-    * CAVEAT: it seems that markovify lib is using its own quick splitters/tokenizers. Maybe I would fork it, and add the option to use NLTK as backend (make pluggable)
-* Morevoer, the Markov implementation should be pluggable. Then I could swap with others like https://github.com/pteichman/cobe and see what's best.
-* Main code - regardless of which Markov implementation (stick with current one or switch to markovify), I wanted to make these chanes:
-    * Configurable support for different tokenizers from NLTK. (Word tokenizer could be swapped out, sentence tokenizer could also be swapped out. Dropdown in the Flask app could be good.)
-    * Make the *stopwords* setup configurable, at code level and maybe Flask app too.
-    * Configurable support for handling contractions (i.e. option to replace "don't" with "do not"
-    in case that makes for better text generation with your input corpus)
-    * Improve punctuation handling. It's handling puncutation in a silly way. I have some logic to ensure `"foo"` and `"foo."` are treated as separate tokens, but it's handled crudely (just a first cut). So currently when the tokens are joined together into a string and returned to user, there is whitespace around all the punctuation, which forces some manual editing before finally using the generated text. Fixing this up won't be hard, just have to do it.
- 
------------------------------------------------------------------
+* pretty good support for Unicode and **mixed encodings** too. This is very crucial for found text
+* by default, leverages NLTK for tokenization and detokenization. NLTK is a good tool for this job
+* some
 
-development & exploration
-=========================
+### more about the strategies
+
+* `crude` is home grown, mainly serving as a reference implementation
+* third party
+    * [`markovify`](https://github.com/jsvine/markovify)
+    * `pymc` - this is a **forked** version of [PyMarkovChain](https://github.com/TehMillhouse/PyMarkovChain),
+        mostly kept the same
+
+Markovify and PyMarkovChainFork each have their own pros and cons. They are quite similar, but you can see from
+playing with them, how they are different. Markovify is the default.
+
+The `crude` strategy was just an exercise, and is kept as a reference implementation - and something to test the others
+against. This one is homegrown and is kept un-optimized - priority for this one is easy-to-understand code, trading
+off the other considerations (memory, speed).
+
+For both PyMarkovChainFork and 'crude', there is full unicode support, as well as best-effort support for
+mixed encodings. Because we can't be too choosy with found-text! You **can** hit issues with NLTK, but they should
+not be common now. Please file an issue if you hit one.
+
+### known limitations
+
+* **`markovify` has awesome features we're missing out on.** These were disabled to reduce scope at first, but it'd
+be really nice to get these integrated well (especially if it could be done in a mix-and-match way)
+    * [weighted combination of models](https://github.com/jsvine/markovify#combining-models),
+        you can make it so texts don't "win" just by length
+    * [automatically filtering sentences to choose novel, new ones](https://github.com/jsvine/markovify/blob/4880754989a7bab272745340a11a2ba165c1216b/markovify/text.py#L116-L122)
+* Input & output 'cleaning' both are off to a good start, but need more work. There's definitely "cruft" in the output
+* No persistence yet. All 3 Markov Strategies could have the model persist on disk, but they each do it
+in a different way. No unified interface for this part, yet
+* Natural language - only tested with English, however similar-structure languages should work. Languages that read
+left-to-right should work, especially if you can boil down the punctuation to ASCII punctuation before passing in.
+(You can leave all your rich Unicode etc in letters, that is supported, but non-ASCII punctuation is not well supported.)
+    * If using with a language besides English, that's awesome, please file issues if you hit any. `nltk` can probably
+    support what you want, but surely we have to iron out some kinks
+
+### development & exploration
 
 * Run tests with pytest (`py.test` in this directory).
-* Run tests of supported Python versions, from clean slate, with tox (`tox` in this directory).
-
-#### Looking at how it works
-
-There are plenty of resources to learn the basics of finite Markov Chains, from the procedure to the practical applications.
-(Won't link here.)
-
-Well-performing Markov Chain implementations need some optimizations and tweaks. 
-For a stripped down, Simplest Thing That Could Possibly Work version, review `presswork.text_maker._crude`.
-Once you've reviewed the code, try 'tracing' the code as it executes. This is a nice series of commands to run:
-
-    # here is our source text :-)
-    python -c 'import this' | grep 'better than' 
-    
-    # here's what it can generate...
-    python -c 'import this' | grep 'better than' | python presswork/cli/__init__.py
-    
-    # now use `trace` from stdlib to trace it (and grep/filter by module name)
-    python -c 'import this' | grep 'better than' \
-        | python -m trace -t presswork/cli/__init__.py --strategy crude \
-        | grep 'crude'
-    
-    # lastly, you can view the logs
-    less /tmp/presswork.debug.log
-
-You can repeat the same for other strategies... (Recommend to peruse the source code first, too)
-
-    python -c 'import this' | grep 'better than' \
-        | python -m trace -t presswork/cli/__init__.py --strategy pymc \
-        | grep 'pymarkovchain'
-
-... or other source texts
-
-    cat foo.txt | python -m trace -t presswork/cli/__init__.py --strategy pymc 
-    cat foo.txt | python -m trace -t presswork/cli/__init__.py --strategy pymc | grep 'pymarkovchain'
+* Run tests of supported Python versions, from clean slate, with tox (`tox` in this directory). Currently just Python 2.7
