@@ -1,10 +1,10 @@
-""" tests the *wrapper* around Markovify, specifically. for more significant tests see `test_essentials_and_parity`
+""" tests the *wrapper* around Markovify - just that. more significant tests are in `test_essentials_and_parity`
 
 this module should NOT test all of Markovify -
     - Markovify already has a test suite,
     - Markovify & our adapter (MarkovifyLite) get exercised plenty in text.text_makers
 
-what's left is just to test the edges - the parts not covered by other tests
+what's left is just to test some of the edges in the wrapper (which Coverage showed were not covered by other tests)
 """
 import collections
 
