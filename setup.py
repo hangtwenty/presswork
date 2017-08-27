@@ -81,10 +81,10 @@ class InstallWithNLTKCorpora(SetuptoolsInstallCommand):
 
 setup(
     name='presswork',
-    version='0.2.5',
-    description="Instant gratification sandbox for text generation using Markov Chains. "
+    version='0.3.1',
+    description="A workbench for text generation using Markov Chains. "
                 "A little Flask app (only for local use), and a CLI that supports piping. "
-                "Comes with a couple of Markov Chain implementations - pluggable. Have fun!",
+                "Pluggable pieces, various extension points. Have fun!",
     long_description=readme,
     author="Michael Floering",
     author_email='michael.floering@gmail.com',
