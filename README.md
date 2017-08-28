@@ -2,7 +2,7 @@
 [![Code Climate](https://codeclimate.com/github/hangtwenty/presswork/badges/gpa.svg)](https://codeclimate.com/github/hangtwenty/presswork)
 
 
-## what
+## presswork
 
 A workbench for generative text. For now, it's all about [Markov](https://blog.codinghorror.com/markov-and-you/)
 [Chains](https://en.wikipedia.org/wiki/Markov_chain). Given a bunch of text, generate "probable" sentences based
@@ -10,13 +10,10 @@ on those models.
 
 Currently offers:
 
-* Workbench tool: **CLI** for piping in found text, piping out generated text (could be used with other tools)
-* Workbench tool: **Flask app** for jamming with text (for local usage)
-* At code level...
-    * Building blocks. Text generation is broken down into separate concerns. For each concern, strategies can be swapped.
-    * Markov Chain strategy is swappable
-        * [jsvine/markovify](https://github.com/jsvine/markovify) is the best for most uses, and it is the default.
-    * Also swappable: Tokenizer (parsing input text before giving to Markov Chain) and Joinier (un-parsing before output to the user)
+* **CLI** for piping in found text, piping out generated text (could be used with other tools)
+* **Flask app** for jamming with text (for local usage)
+* Python code
+    * Text generation is broken down into separate concerns. Bias towards composite reuse (mix and match).
 
 I'd like to add other tools to the toolkit, building off of this foundation.
 
@@ -30,20 +27,16 @@ I separated some concerns, and experimented with different strategies for each c
 
 ### example of mixing and matching
 
-With just a few things separated, we can already mix and match a bit.
+Here's mixing and matching with the CLI. (It outputs a lot more than this, these are just some snippets of output.)
 
     $ presswork --input-filename *.txt
     I feel lucky to have evolved flight and others have not. If history is any guide, we copied their interview process ...
-    #...
 
     $ presswork --join just_whitespace < cat ~/found_texts/*
-    #...
     An erroneous manual operation
     Consequently the attempt to break the physical laws
-    #...
 
     $ presswork --join random_enjamb -i *.txt
-    #...
     The answer
         is complicated,
               and timidly said
@@ -54,7 +47,6 @@ With just a few things separated, we can already mix and match a bit.
     But we live in an artificial intelligence.
             How could you live so blind
             to your surroundings?
-    #...
 
 You may fiddle with the Markov Chain strategy, tokenizer strategy, and joiner strategy. Another important parameter
 is the [N-gram size](https://en.wikipedia.org/wiki/N-gram) (how "tightly" to model the input text).
@@ -188,7 +180,7 @@ presswork/cli/__init__.py                               41      0   100%
 presswork/cli/__main__.py                                0      0   100%
 presswork/constants.py                                   1      0   100%
 presswork/flask_app/__init__.py                          0      0   100%
-presswork/flask_app/app.py                              55      2    96%   76-77
+presswork/flask_app/app.py                              54      2    96%   82-83
 presswork/log/__init__.py                               17      0   100%
 presswork/text/__init__.py                               0      0   100%
 presswork/text/clean.py                                 49      1    98%   79
@@ -204,17 +196,15 @@ presswork/text/markov/thirdparty/_pymarkovchain.py      96      0   100%
 presswork/text/text_makers.py                          128      0   100%
 presswork/utils.py                                       9      0   100%
 ----------------------------------------------------------------------------------
-TOTAL                                                  655      3    99%
+TOTAL                                                  654      3    99%
 ```
 
-(About ~50 lines are excluded from coverage (`# pragma: nocover`). If including those, coverage
-is about 92% at time of writing.)
+(About ~50 lines are excluded from coverage (`# pragma: nocover`). So with those included it'd be about 92%.)
 
 ## miscellaneous
 
 * pretty good support for Unicode and **mixed encodings** too. This is very crucial for found text
-* by default, leverages NLTK for tokenization and detokenization. NLTK is a good tool for this job
-* some
+* by default, leverages NLTK for tokenization and de-tokenization. NLTK is a good tool for this job
 
 ### more about the strategies
 
@@ -255,3 +245,7 @@ left-to-right should work, especially if you can boil down the punctuation to AS
 
 * Run tests with pytest (`py.test` in this directory).
 * Run tests of supported Python versions, from clean slate, with tox (`tox` in this directory). Currently just Python 2.7
+
+----
+
+👁 Happy text generating 👁
