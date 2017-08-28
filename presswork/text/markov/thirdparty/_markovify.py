@@ -50,15 +50,15 @@ class MarkovifyLite(markovify.Text):
         self.rejoined_text = u'<DISABLED>'
 
     def sentence_join(self, sentences):
-        """ Disable markovify's eager re-joining: make this method a no-op. (word_join is part of its public API)
+        """ Disable markovify's eager re-joining: make this method a no-op. (sentence_join *is* part of its public API)
 
-        :param words: list of lists of words
+        :param sentences: list of lists of words
         :rtype: list
         """
         return sentences
 
     def word_join(self, words):
-        """ Disable markovify's eager re-joining, by making this method a no-op.
+        """ Disable markovify's eager re-joining: make this method a no-op.
 
         this is a bit of abuse since it changes the return type from string to list. however,
         word_join is part of its public API, and we aren't given the option of composition - can only override.

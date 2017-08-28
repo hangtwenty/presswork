@@ -4,9 +4,9 @@
 import bs4
 import pytest
 
-from presswork import sanitize
-from presswork.text import grammar
 from presswork.text import text_makers
+from presswork.text.grammar import joiners
+from presswork.text.grammar import tokenizers
 from tests import helpers
 
 
@@ -60,8 +60,8 @@ def test_index_submit_deterministic(testapp):
 
 
 @pytest.mark.parametrize('ngram_size', [2, 3])
-@pytest.mark.parametrize('tokenizer_strategy', grammar.TOKENIZER_NICKNAMES)
-@pytest.mark.parametrize('joiner_strategy', grammar.JOINER_NICKNAMES)
+@pytest.mark.parametrize('tokenizer_strategy', tokenizers.TOKENIZER_NICKNAMES)
+@pytest.mark.parametrize('joiner_strategy', joiners.JOINER_NICKNAMES)
 @pytest.mark.parametrize('text_maker_strategy', text_makers.TEXT_MAKER_NICKNAMES)
 def test_index_submit_thorough(testapp, tokenizer_strategy, joiner_strategy, text_maker_strategy, ngram_size, text_any):
     """ Tests a submission of various fixtures and various parameters"""
@@ -82,7 +82,7 @@ def test_index_submit_thorough(testapp, tokenizer_strategy, joiner_strategy, tex
     comparison = helpers.FrontendWordSetComparison.create(
             generated_text=output_text,
             input_text=input_text,
-            tokenizer=grammar.create_sentence_tokenizer(tokenizer_strategy))
+            tokenizer=tokenizers.create_sentence_tokenizer(tokenizer_strategy))
 
     assert comparison.output_is_mostly_valid(tolerance=(1.12 / 100), phantoms_allowed=1)
 
@@ -119,7 +119,7 @@ def test_invalid_strategies_chosen(testapp):
             ngram_size="2",
             count_of_sentences_to_make=1,
     ))
-    assert not "warning" in response.data, "self-check failed, test case cannot proceed"
+    assert not ("warning" in response.data), "self-check failed, test case cannot proceed"
 
     # valid - should not be case sensitive
     response = testapp.post('/', data=dict(
@@ -136,7 +136,7 @@ def test_invalid_strategies_chosen(testapp):
     response = testapp.post('/', data=dict(
             input_text="yada yada",
             text_maker_strategy="pymc",  # valid
-            joiner_strategy='just_whitespace', # valid
+            joiner_strategy='just_whitespace',  # valid
             tokenizer_strategy="invalid",  # invalid
             ngram_size="2",
             count_of_sentences_to_make=1,
@@ -149,7 +149,7 @@ def test_invalid_strategies_chosen(testapp):
             input_text="yada yada yada",
             text_maker_strategy="invalid",  # invalid
             tokenizer_strategy="just_whitespace",  # valid
-            joiner_strategy='just_whitespace', # valid
+            joiner_strategy='just_whitespace',  # valid
             ngram_size="2",
             count_of_sentences_to_make=1,
     ))
@@ -161,7 +161,7 @@ def test_invalid_strategies_chosen(testapp):
             input_text="yada yada yada",
             text_maker_strategy="invalid",  # valid
             tokenizer_strategy="just_whitespace",  # valid
-            joiner_strategy='just_whitespace', # valid
+            joiner_strategy='just_whitespace',  # valid
             ngram_size="\x02",  # invalid
             count_of_sentences_to_make=1,
     ))
@@ -173,7 +173,7 @@ def test_invalid_strategies_chosen(testapp):
             input_text="yada yada yada",
             text_maker_strategy="invalid",  # valid
             tokenizer_strategy="just_whitespace",  # valid
-            joiner_strategy='invalid', # invalid
+            joiner_strategy='invalid',  # invalid
             ngram_size=8,  # valid
             count_of_sentences_to_make=1,
     ))

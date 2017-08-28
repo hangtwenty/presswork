@@ -5,16 +5,15 @@ import logging
 import uuid
 
 from flask import Flask, render_template
-
 from flask_wtf import FlaskForm
 from flask_wtf.csrf import CSRFProtect
-
 from wtforms import validators, StringField, IntegerField, ValidationError, TextAreaField
 
 from presswork import constants
-from presswork.sanitize import SanitizedString
-from presswork.text import grammar
+from presswork.text import clean
 from presswork.text import text_makers
+from presswork.text.grammar import joiners
+from presswork.text.grammar import tokenizers
 
 app = Flask(__name__)
 csrf = CSRFProtect(app=app)
@@ -51,13 +50,13 @@ class MarkovChainTextMakerForm(FlaskForm):
     tokenizer_strategy = StringField(
             "Tokenizer Strategy | choices: {} | NLTK is most versatile but slower. Markovify tokenizer "
             "is fast but narrow. 'just_whitespace' is simplest but requires line-separated input.".format(
-                    ", ".join(grammar.TOKENIZER_NICKNAMES)),
+                    ", ".join(tokenizers.TOKENIZER_NICKNAMES)),
             validators=[validators.InputRequired(), validators.Length(max=20), ],
             filters=[lower_or_empty],
             default='nltk')
 
     joiner_strategy = StringField(
-            "Joiner Strategy | choices: {}".format(", ".join(grammar.joiner_classes_by_nickname.keys())),
+            "Joiner Strategy | choices: {}".format(", ".join(joiners.JOINER_NICKNAMES)),
             validators=[validators.InputRequired(), validators.Length(max=20), ],
             filters=[lower_or_empty],
             default='nltk')
@@ -68,15 +67,15 @@ class MarkovChainTextMakerForm(FlaskForm):
                     'text_maker_strategy must be one of: {}'.format(", ".join(text_makers.TEXT_MAKER_NICKNAMES)))
 
     def validate_tokenizer_strategy(form, field):
-        if field.data not in grammar.TOKENIZER_NICKNAMES:
+        if field.data not in tokenizers.TOKENIZER_NICKNAMES:
             raise ValidationError(
-                    'tokenizer_strategy must be one of: {}'.format(", ".join(grammar.TOKENIZER_NICKNAMES)))
+                    'tokenizer_strategy must be one of: {}'.format(", ".join(tokenizers.TOKENIZER_NICKNAMES)))
 
     def validate_joiner_strategy(form, field):
-        if field.data not in grammar.joiner_classes_by_nickname.keys():
+        if field.data not in joiners.JOINER_NICKNAMES:
             raise ValidationError(
                     'joiner_strategy must be one of: {}'.format(", ".join(
-                            grammar.joiner_classes_by_nickname.keys())))
+                            joiners.JOINER_NICKNAMES)))
 
     def debug_log(self):
         if logger.isEnabledFor(logging.DEBUG):
@@ -93,7 +92,7 @@ def markov():
         logger.info(u'[flask] received valid form submission')
 
         data = {
-            field.name: (SanitizedString(field.data) if isinstance(field.data, basestring) else field.data)
+            field.name: (clean.CleanInputString(field.data) if isinstance(field.data, basestring) else field.data)
             for field in iter(form)
             }
 

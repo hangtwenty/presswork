@@ -7,9 +7,10 @@ import click
 
 from presswork import constants
 from presswork.log import setup_logging
-from presswork.sanitize import SanitizedString
-from presswork.text import grammar
+from presswork.text import clean
 from presswork.text import text_makers
+from presswork.text.grammar import joiners
+from presswork.text.grammar import tokenizers
 
 
 @click.command()
@@ -29,21 +30,21 @@ from presswork.text import text_makers
               default=constants.DEFAULT_NGRAM_SIZE,
               show_default=True)
 @click.option('-s', '--strategy',
-              type=click.Choice(['markovify', 'pymc', 'crude']),
+              type=click.Choice(text_makers.TEXT_MAKER_NICKNAMES),
               help="which strategy to use for markov chain model & text generation. "
                    "'markovify' is a good default choice. "
                    "'pymc' is based on PyMarkovChain. "
                    "'crude' is crude and limited. ",
               default="markovify")
 @click.option('-t', '--tokenize',
-              type=click.Choice(grammar.TOKENIZER_NICKNAMES),
+              type=click.Choice(tokenizers.TOKENIZER_NICKNAMES),
               help="which strategy to use for tokenizing the input text before training the model. "
                    "'nltk' uses NLTK's recommended sentence & word tokenizers (Punkt & Treebank). "
                    "'just_whitespace' will consider sentences to be line separated, and words whitespace separated. "
                    "'markovify' uses both punctuation and whitespace; may be faster than 'nltk', but less precise.",
               default='nltk')
 @click.option('-j', '--join',
-              type=click.Choice(grammar.JOINER_NICKNAMES),
+              type=click.Choice(joiners.JOINER_NICKNAMES),
               help="which strategy to use for joining the text back together, before output. "
                    "'nltk' uses NLTK's recommended de-tokenizer, MosesDetokenizer. "
                    "'random_indent' is like 'nltk' but randomly indents lines. "
@@ -80,7 +81,7 @@ def main(ngram_size, strategy, tokenize, join, input_filename, input_encoding, o
             strategy=strategy,
             sentence_tokenizer=tokenize,
             joiner=join,
-            input_text=SanitizedString(input_text),
+            input_text=clean.CleanInputString(input_text),
             ngram_size=ngram_size)
 
     output_sentences = text_maker.make_sentences(count)

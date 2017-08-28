@@ -1,9 +1,9 @@
 # -*- coding: utf-8 -*-
-""" throw your strings to SanitizedString and "ensure" they have been sanitized, such as removing control characters.
+""" throw your strings to CleanInputString and "ensure" they have been sanitized, such as removing control characters.
 
-SanitizedString will avoid running redundantly, by checking type of the input (good for Very Big Strings)
+CleanInputString will avoid running redundantly, by checking type of the input (good for Very Big Strings)
 
-at the time of writing there are two sanitization filters in use:
+at the time of writing there are two cleaning filters in use:
 
     - remove all control characters besides newlines/CRLF (leave those) (remove null bytes etc)
     - "massage" inputs so that even if they have invalid, mixed encodings, we still coerce to Unicode
@@ -28,15 +28,11 @@ from bs4 import UnicodeDammit
 logger = logging.getLogger("presswork")
 
 
-# TODO move this module into `text` and rename it to `clean`
-
-
-# TODO rename to CleanedInputString
 # noinspection PyMissingConstructor
-class SanitizedString(UserString):
+class CleanInputString(UserString):
     """ cleans up string upon input - unless it's already been cleaned!
 
-    SanitizedString will avoid running redundantly, by checking type of the input and not re-cleaning if
+    CleanInputString will avoid running redundantly, by checking type of the input and not re-cleaning if
     it's already this type. So no content has to be checked. (good for Very Big Strings)
 
     What 'clean' means here - *not* 'clean' in any security related sense.
@@ -50,21 +46,22 @@ class SanitizedString(UserString):
     Aside from that case, we also want to make sure we can keep most Unicode, even if input has mixed encodings
     (can't be choosy with found text!). Then while we're at it, we can get rid of extra null bytes etc too.
 
-        >>> assert SanitizedString(u"hello") == u"hello"
+        >>> assert CleanInputString(u"hello") == u"hello"
         >>> assert isinstance(u"hello", unicode)
-        >>> assert not SanitizedString("")  # confirm truthiness is same as normal strings
-        >>> assert not SanitizedString(u"")  # confirm truthiness is same as normal strings
-        >>> assert SanitizedString("hello")
+        >>> assert not CleanInputString("")  # confirm truthiness is same as normal strings
+        >>> assert not CleanInputString(u"")  # confirm truthiness is same as normal strings
+        >>> assert CleanInputString("hello")
         >>> null_byte = chr(0)
         >>> assert null_byte
         >>> assert null_byte != ''
-        >>> assert SanitizedString(null_byte) == ''
-        >>> assert SanitizedString(null_byte + "hello") == "hello"
-        >>> assert SanitizedString(SanitizedString(SanitizedString(SanitizedString(u'idempotent')))) == u'idempotent'
-        >>> cleaned = SanitizedString('hi')
-        >>> # confirm we avoid redundant sanitization: we would expect the internal string to be exact same object
-        >>> assert cleaned.data is SanitizedString(SanitizedString(SanitizedString(cleaned))).data
-        >>> assert unicode(SanitizedString(u"unicøde")) == u"unicøde"
+        >>> assert CleanInputString(null_byte) == ''
+        >>> assert CleanInputString(null_byte + "hello") == "hello"
+        >>> assert CleanInputString(
+        ... CleanInputString(CleanInputString(CleanInputString(u'idempotent')))) == u'idempotent'
+        >>> cleaned = CleanInputString('hi')
+        >>> # confirm we avoid redundant cleaning: we would expect the internal string to be exact same object
+        >>> assert cleaned.data is CleanInputString(CleanInputString(CleanInputString(cleaned))).data
+        >>> assert unicode(CleanInputString(u"unicøde")) == u"unicøde"
     """
 
     def __init__(self, s, cleaner_functions=None):
@@ -82,7 +79,7 @@ class SanitizedString(UserString):
             logger.warning(u"WARNING: Calling simplify_quotes on the input is considered iffy. Can cause some "
                            u"real head-scratcher bugs. YMMV.")
 
-        if isinstance(s, SanitizedString):
+        if isinstance(s, CleanInputString):
             self.data = s.data
         else:
             s = self._clean(s)
@@ -128,7 +125,7 @@ class OutputProofreader(object):
 
 _floating_punctuation_to_remove = """!"#$%&'()*+,.:;<=>?@[]^_`{}~"""
 re_floating_ascii_punctuation = re.compile(
-        u'(?<=\s)([%s]{1})(?=\s)' % re.escape(_floating_punctuation_to_remove),
+        u'(?<=\s)([%s])(?=\s)' % re.escape(_floating_punctuation_to_remove),
         flags=re.UNICODE)
 
 
@@ -208,7 +205,7 @@ def unicode_dammit(s, override_encodings=('utf-8', 'windows-1252', 'iso-8859-1',
         whether they are mixed or not. someday-maybe this can be configured with better control if needed.
     """
 
-    cleaned = UnicodeDammit(s, smart_quotes_to="ascii", override_encodings=override_encodings).unicode_markup
+    cleaned = UnicodeDammit(s, smart_quotes_to=smart_quotes_to, override_encodings=override_encodings).unicode_markup
     return cleaned
 
 

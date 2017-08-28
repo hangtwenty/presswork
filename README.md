@@ -184,29 +184,31 @@ Name                                                 Stmts   Miss  Cover   Missi
 ----------------------------------------------------------------------------------
 presswork/__init__.py                                    0      0   100%
 presswork/__main__.py                                    0      0   100%
-presswork/cli/__init__.py                               40      0   100%
+presswork/cli/__init__.py                               41      0   100%
 presswork/cli/__main__.py                                0      0   100%
 presswork/constants.py                                   1      0   100%
 presswork/flask_app/__init__.py                          0      0   100%
-presswork/flask_app/app.py                              54      2    96%   76-77
+presswork/flask_app/app.py                              55      2    96%   76-77
 presswork/log/__init__.py                               17      0   100%
-presswork/sanitize.py                                   49      1    98%   82
 presswork/text/__init__.py                               0      0   100%
-presswork/text/grammar.py                              165      0   100%
+presswork/text/clean.py                                 49      1    98%   79
+presswork/text/grammar/__init__.py                       3      0   100%
+presswork/text/grammar/containers.py                    31      0   100%
+presswork/text/grammar/joiners.py                       70      0   100%
+presswork/text/grammar/tokenizers.py                    66      0   100%
 presswork/text/markov/__init__.py                        0      0   100%
 presswork/text/markov/_crude_markov.py                  66      0   100%
 presswork/text/markov/thirdparty/__init__.py             0      0   100%
 presswork/text/markov/thirdparty/_markovify.py          23      0   100%
 presswork/text/markov/thirdparty/_pymarkovchain.py      96      0   100%
-presswork/text/text_makers.py                          130      0   100%
+presswork/text/text_makers.py                          128      0   100%
 presswork/utils.py                                       9      0   100%
 ----------------------------------------------------------------------------------
-TOTAL                                                  650      3    99%
-===================== 890 passed, 4 warnings in 139.43 seconds ====================
+TOTAL                                                  655      3    99%
 ```
 
-(Full disclosure, ~50 lines are excluded from coverage by `# pragma: nocover`. Without excluding those, coverage
-is about 92%.)
+(About ~50 lines are excluded from coverage (`# pragma: nocover`). If including those, coverage
+is about 92% at time of writing.)
 
 ## miscellaneous
 

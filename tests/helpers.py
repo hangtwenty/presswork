@@ -4,10 +4,7 @@ import logging
 import re
 import string
 
-import presswork.sanitize
-from presswork import sanitize
-from presswork.sanitize import unicode_dammit
-from presswork.text import grammar
+from presswork.text import clean
 from presswork.utils import iter_flatten
 
 logger = logging.getLogger("presswork")
@@ -102,8 +99,8 @@ class FrontendWordSetComparison(WordSetComparison):
     @staticmethod
     def _clean_text(text):
         return denoise_punctuation(
-                sanitize.OutputProofreader().proofread(
-                        sanitize.SanitizedString(text).unwrap()
+                clean.OutputProofreader().proofread(
+                        clean.CleanInputString(text).unwrap()
                 )
         )
 
@@ -124,7 +121,7 @@ class FrontendWordSetComparison(WordSetComparison):
                 logger.warning("phantom token? {!r}".format(token))
         return phantoms
 
-    def output_is_mostly_valid(self, tolerance):
+    def output_is_mostly_valid(self, tolerance, phantoms_allowed=0):
         """ in the Frontend cases, we allow a little difference, on hope it only has to do with "display/joiner" quirks
 
         (I held out for a while trying to ensure 100% validity even in front end, but got diminishing returns as
@@ -132,9 +129,11 @@ class FrontendWordSetComparison(WordSetComparison):
 
         :param tolerance: percentage expressed as 0-1.0 (meaning 0-100%). higher is more tolerant of difference.
             this shouldn't be more than 0.01 i.e. 1%, very often.
+        :param phantoms_allowed: how many "phantom" tokens we will let slide (where "phantom" means it is in
+            output tokens (more precisely, RE-tokenized output) - but not in input tokens)
         """
-        if tolerance > 0.012:
-            raise ValueError("tolerance = {} i.e. {}%, aborting, try to fix underlying issues first".format(
+        if tolerance > (1.13 / 100.0):
+            raise ValueError("tolerance = {} i.e. {}%, too high, abort! no cheating :-)".format(
                     tolerance, tolerance * 100.0))
         strictly_valid = self.output_is_valid_strict()
         if strictly_valid:
@@ -147,14 +146,15 @@ class FrontendWordSetComparison(WordSetComparison):
             else:
                 mostly_valid = False
 
-        if self.phantom_tokens():
+        phantom_tokens = self.phantom_tokens()
+        if phantom_tokens and len(phantom_tokens) > phantoms_allowed:
             mostly_valid = False
 
         return mostly_valid
 
 
-
 re_ascii_punctuation = re.compile(u'[%s]' % re.escape(string.punctuation), flags=re.UNICODE)
+
 
 def denoise_punctuation(s):
     """ try to reduce noise and false failures, by messing with punctuation before (re-)tokenizing for comparison
@@ -172,33 +172,4 @@ def denoise_punctuation(s):
         More of the Same
         To amend
     """
-    # TODO in a followup commmit, delete these sketches that I ultimately discarded
-    # re_ascii_punctuation = re.compile(u'(?<!\w)[%s](?!\w)' % re.escape(string.punctuation), flags=re.UNICODE)
-    # re_ascii_punctuation = re.compile(u'[\w\s]([%s])[\w\s]' % re.escape(string.punctuation), flags=re.UNICODE)
-
-    # #
-    # # def _keep_single_apostrophe_or_quote(match):
-    # #     punct_string = match.group(2)
-    # #     if match.group(3) and match.group(3)[0].isupper():
-    # #         # from the wild: Edward'Ted
-    # #         return u" "
-    # #     elif punct_string in (u"'", u'"'):
-    # #         return match.group(0).strip('\'"')
-    # #     else:
-    # #         return u""
-    # #
-    # # # return re_ascii_punctuation.sub(_keep_apostrophe_and_quotes_but_else_replace_with_space, cleaned)
-    # # # return re_ascii_punctuation.sub("<PUNCTUATION>", cleaned)
-    # # return re_ascii_punctuation.sub(_keep_single_apostrophe_or_quote, cleaned)
-    #
-    # re_ascii_punctuation = re.compile(u'[\w\s]([%s])[\w\s]' % re.escape(string.punctuation), flags=re.UNICODE)
-    # def _func(match):
-    #     punct = match.group(1)
-    #     all = match.group(0)
-    #     return all.replace(punct, u"")
-    #
-    # return re_ascii_punctuation.sub(_func, s)
-
     return re_ascii_punctuation.sub("", s)
-
-

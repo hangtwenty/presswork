@@ -3,12 +3,11 @@
 """
 import pytest
 
-import presswork.text.grammar
-from presswork.text import grammar
 from presswork.text import text_makers
+from presswork.text.grammar import joiners
+from presswork.text.grammar import tokenizers
 from presswork.text.markov import _crude_markov
 from presswork.utils import iter_flatten
-
 from tests import helpers
 
 
@@ -32,10 +31,10 @@ def test_smoketest_common_phrase(each_text_maker):
 
 
 @pytest.mark.parametrize('ngram_size', range(2, 6))
-@pytest.mark.parametrize('joiner', map(grammar.create_joiner, grammar.JOINER_NICKNAMES))
+@pytest.mark.parametrize('joiner', map(joiners.create_joiner, joiners.JOINER_NICKNAMES))
 @pytest.mark.parametrize('sentence_tokenizer', [
-    grammar.SentenceTokenizerNLTK(word_tokenizer=grammar.WordTokenizerNLTK()),
-    grammar.SentenceTokenizerNLTK(word_tokenizer=grammar.WordTokenizerWhitespace()),
+    tokenizers.SentenceTokenizerNLTK(word_tokenizer=tokenizers.WordTokenizerNLTK()),
+    tokenizers.SentenceTokenizerNLTK(word_tokenizer=tokenizers.WordTokenizerWhitespace()),
 ])
 def test_essential_properties_of_text_making(each_text_maker, ngram_size, sentence_tokenizer, joiner, text_any):
     """ confirm some essential known properties of text-making output, common to all the text makers
@@ -60,9 +59,9 @@ def test_essential_properties_of_text_making(each_text_maker, ngram_size, senten
 
 
 @pytest.mark.parametrize('sentence_tokenizer', [
-    grammar.SentenceTokenizerWhitespace(word_tokenizer=grammar.WordTokenizerWhitespace()),
-    grammar.SentenceTokenizerWhitespace(word_tokenizer=grammar.WordTokenizerNLTK()),
-    grammar.SentenceTokenizerMarkovify(),
+    tokenizers.SentenceTokenizerWhitespace(word_tokenizer=tokenizers.WordTokenizerWhitespace()),
+    tokenizers.SentenceTokenizerWhitespace(word_tokenizer=tokenizers.WordTokenizerNLTK()),
+    tokenizers.SentenceTokenizerMarkovify(),
 ])
 def test_text_making_with_blankline_tokenizer(each_text_maker, sentence_tokenizer, text_newlines):
     """ covers some of same ground as test_essential_properties, but uses tokenizer that only works with line-separated
@@ -100,7 +99,7 @@ def test_easy_deterministic_cases_are_same_for_all_text_makers(all_text_makers, 
     # expected is that all text makers output same deterministic sentence for these inputs.
     # we can check that pretty elegantly by stringifying, calling set, and making sure their is only 1 unique output
     # (temporary dict var is not necessary for assertion - is just for ease of debugging when something goes wrong)
-    outputs_rejoined = {name: grammar.JoinerWhitespace().join(output).strip() for name, output in outputs.items()}
+    outputs_rejoined = {name: joiners.JoinerWhitespace().join(output).strip() for name, output in outputs.items()}
     assert len(set(outputs_rejoined.values())) == 1
 
 
@@ -261,7 +260,7 @@ def test_factory_special_cases():
 def test_mismatched_ngram_size_for_crude():
     # quick test for a failure mode that is important, but wasn't covered before
     ngram_size = 2
-    tokenize = grammar.SentenceTokenizerWhitespace().tokenize
+    tokenize = tokenizers.SentenceTokenizerWhitespace().tokenize
     model = _crude_markov.crude_markov_chain(
             sentences_as_word_lists=tokenize("foo bar baz"),
             ngram_size=ngram_size)

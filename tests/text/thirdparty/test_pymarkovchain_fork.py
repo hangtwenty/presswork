@@ -10,7 +10,8 @@ from collections import namedtuple
 
 import pytest
 
-from presswork.text import grammar
+from presswork.text.grammar import joiners
+from presswork.text.grammar import tokenizers
 from presswork.text.markov.thirdparty._pymarkovchain import PyMarkovChainForked
 
 SentencesTestCase = namedtuple('SentencesTestCase', ['text', 'phrase_in_each_sentence'])
@@ -25,9 +26,9 @@ TEST_CASE_ZEN_OF_PYTHON = SentencesTestCase(
               "Flat is better than nested.\n" +
               "Sparse is better than dense."))
 
-tokenize = grammar.SentenceTokenizerWhitespace().tokenize
+tokenize = tokenizers.SentenceTokenizerWhitespace().tokenize
+rejoin = joiners.JoinerWhitespace().join
 
-rejoin = grammar.JoinerWhitespace().join
 
 @pytest.fixture
 def pymc(tmpdir):

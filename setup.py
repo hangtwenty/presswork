@@ -112,9 +112,6 @@ setup(
     tests_require=test_requirements,
     setup_requires=setup_requirements,
 
-    #----------------------------------------------------------------------------------
-    # less-common things (not just boilerplate, has to do with this specific project):
-    #----------------------------------------------------------------------------------
     cmdclass={
         'install': SetuptoolsInstallCommand,
         'install_with_nltk_corpora': InstallWithNLTKCorpora,

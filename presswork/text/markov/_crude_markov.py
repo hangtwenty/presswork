@@ -64,13 +64,14 @@ def crude_markov_chain(sentences_as_word_lists, ngram_size=constants.DEFAULT_NGR
                 # (This fallback should no longer be necessary, but leaving it anyways; it is not *in*correct.)
                 next_word = END_SYMBOL
 
-            # Re: memory usage -- see note in module docstring. (left unoptimized)
             if model.get(ngram, None) is None:
                 model[ngram] = [next_word]
             else:
+                # Re: memory usage -- see note in module docstring. (left unoptimized)
                 model[ngram].append(next_word)
 
     if logger.level == logging.DEBUG:  # pragma: no cover
+        # noinspection PyBroadException  # (This is a case where broad exception-catch makes sense)
         try:
             logger.debug(u'model=\n{}'.format(pprint.pformat(model, width=2)))
         except:

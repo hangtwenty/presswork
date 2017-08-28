@@ -6,14 +6,13 @@ doesn't re-hash same checks from test_essentials_and_parity - moreso testing int
 text makers. as well as some behavior/interface aspects of the CLI.
 """
 
-from mock import patch
 import pytest
-
 from click.testing import CliRunner
+from mock import patch
 
 from presswork import cli
-from presswork.text import grammar
-
+from presswork.text.grammar import joiners
+from presswork.text.grammar import tokenizers
 from tests import helpers
 
 
@@ -47,14 +46,14 @@ def test_cli_large_input_from_stdin(runner, text_newlines, ngram_size, input_enc
     comparison = helpers.FrontendWordSetComparison.create(
             generated_text=output_text,
             input_text=input_text,
-            tokenizer=grammar.create_sentence_tokenizer(tokenizer_strategy))
+            tokenizer=tokenizers.create_sentence_tokenizer(tokenizer_strategy))
 
     assert comparison.output_is_valid_strict()
 
 
 @pytest.mark.parametrize("strategy", ['markovify', 'pymc', 'crude'])
-@pytest.mark.parametrize("tokenizer_strategy", grammar.TOKENIZER_NICKNAMES)
-@pytest.mark.parametrize("joiner_strategy", grammar.JOINER_NICKNAMES)
+@pytest.mark.parametrize("tokenizer_strategy", tokenizers.TOKENIZER_NICKNAMES)
+@pytest.mark.parametrize("joiner_strategy", joiners.JOINER_NICKNAMES)
 @pytest.mark.parametrize('input_encoding', ['utf-8', 'raw'])
 def test_cli_large_input_from_file(
         runner, text_newlines, strategy, joiner_strategy, tokenizer_strategy, input_encoding):
@@ -70,7 +69,7 @@ def test_cli_large_input_from_file(
         '--tokenize', tokenizer_strategy,
         '--join', joiner_strategy,
         '--ngram-size', 2,
-        '--count', 100
+        '--count', 200
     ])
     output_text = result.output.strip()
     assert output_text
@@ -78,9 +77,9 @@ def test_cli_large_input_from_file(
     comparison = helpers.FrontendWordSetComparison.create(
             generated_text=output_text,
             input_text=input_text,
-            tokenizer=grammar.create_sentence_tokenizer(tokenizer_strategy))
+            tokenizer=tokenizers.create_sentence_tokenizer(tokenizer_strategy))
 
-    assert comparison.output_is_mostly_valid(tolerance=(1.0 / 100))
+    assert comparison.output_is_mostly_valid(tolerance=(1.1 / 100), phantoms_allowed=2)
 
 
 def test_cli_default_strategy(runner):
@@ -123,8 +122,8 @@ def test_cli_choose_strategy(runner):
 
 
 @pytest.mark.parametrize("strategy", ['markovify', 'pymc', 'crude'])
-@pytest.mark.parametrize("tokenizer_strategy", grammar.TOKENIZER_NICKNAMES)
-@pytest.mark.parametrize("joiner_strategy", grammar.JOINER_NICKNAMES)
+@pytest.mark.parametrize("tokenizer_strategy", tokenizers.TOKENIZER_NICKNAMES)
+@pytest.mark.parametrize("joiner_strategy", joiners.JOINER_NICKNAMES)
 def test_cli_empty_inputs(runner, strategy, joiner_strategy, tokenizer_strategy, empty_or_null_string):
     """ confirm nothing too weird happens from empty inputs or inputs of control chars like null byte etc
 
