@@ -73,7 +73,7 @@ def test_index_submit_thorough(testapp, tokenizer_strategy, joiner_strategy, tex
             joiner_strategy=joiner_strategy,
             ngram_size=ngram_size,
 
-            count_of_sentences_to_make=100,
+            count_of_sentences_to_make=200,
     ))
     assert response.status_code == 200
 
@@ -84,7 +84,7 @@ def test_index_submit_thorough(testapp, tokenizer_strategy, joiner_strategy, tex
             input_text=input_text,
             tokenizer=tokenizers.create_sentence_tokenizer(tokenizer_strategy))
 
-    assert comparison.output_is_mostly_valid(tolerance=(1.12 / 100), phantoms_allowed=1)
+    assert comparison.output_is_mostly_valid(tolerance=(1.15 / 100), phantoms_allowed=2)
 
 
 def _get_the_generated_text_from_exact_html_element(response):

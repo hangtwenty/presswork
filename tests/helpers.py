@@ -132,7 +132,7 @@ class FrontendWordSetComparison(WordSetComparison):
         :param phantoms_allowed: how many "phantom" tokens we will let slide (where "phantom" means it is in
             output tokens (more precisely, RE-tokenized output) - but not in input tokens)
         """
-        if tolerance > (1.13 / 100.0):
+        if tolerance > (1.15 / 100.0):
             raise ValueError("tolerance = {} i.e. {}%, too high, abort! no cheating :-)".format(
                     tolerance, tolerance * 100.0))
         strictly_valid = self.output_is_valid_strict()
