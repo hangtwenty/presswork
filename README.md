@@ -17,7 +17,7 @@ Currently offers:
 
 I'd like to add other tools to the toolkit, building off of this foundation.
 
-## why
+## Why
 
 Started for fun: I wanted to generate/write some [parodies of music reviews about experimental music](http://presswerk.tumblr.com/).
 (Poking fun at something I love.)
@@ -25,7 +25,7 @@ Started for fun: I wanted to generate/write some [parodies of music reviews abou
 I picked it back up to explore the "creative text generation" domain a bit more. 
 I separated some concerns, and experimented with different strategies for each concern.
 
-### example of mixing and matching
+### Example of mixing and matching
 
 Here's mixing and matching with the CLI. (It outputs a lot more than this, these are just some snippets of output.)
 
@@ -65,7 +65,7 @@ To find out more:
 You can access the same options to mix and match, when using the local Flask app.
 CLI and Flask app both have help at hand, and you can explore the code and docs for deeper detail.
 
-### more about why/ looking forward
+### Looking forward
 
 I want to explore the "creative text generation" domain more. This pet project is just a start :-)
 
@@ -84,7 +84,7 @@ what else could we "pipe" it through?
         with something recently output
 
 
-### why not/ alternatives
+### It's not there yet!
 
 This is undercooked! It's not on PyPI because you should only use it if you're cloning it, and getting your hands dirty.
 (If you end up enjoying it, or extending it, please get in touch! File issues! Etc! Cheers.)
@@ -94,7 +94,7 @@ For a great Markov Chain text generation **library**,
 
 ----
 
-## how
+## How
 
 Overall usage note - it can be maddening to get the models Just Right to always make great output.
 What I prefer: continually generate things, skim, and copy out the highlights to an editor.
@@ -152,7 +152,7 @@ especially before the dust settles on the design.
     >>> tm.input_text(...)
 
 
-### setup
+### Setup
 
 1. Grab this GitHub repository and `cd` in. (Not on PyPI because it's not utilitarian.)
 2. Create & activate your [virtualenv](https://virtualenv.pypa.io/en/latest/)
@@ -167,7 +167,7 @@ especially before the dust settles on the design.
 
 ----------------
 
-## test coverage snapshot
+## Test coverage snapshot
 
 One of the best things this has going for it -- thorough tests, and good coverage.
 
@@ -203,12 +203,12 @@ TOTAL                                                  654      3    99%
 
 (890 tests!? Well, they're [parametrized with py.test.](https://docs.pytest.org/en/latest/parametrize.html) About ~50 lines are excluded from coverage (`# pragma: nocover`). So with those included it'd be about 92%.)
 
-## miscellaneous
+## Miscellaneous
 
-* pretty good support for Unicode and **mixed encodings** too. This is very crucial for found text
-* by default, leverages NLTK for tokenization and de-tokenization. NLTK is a good tool for this job
+* It's got pretty good support for Unicode and **mixed encodings** too. This is very crucial for found text
+* By default, it leverages NLTK for tokenization and de-tokenization. NLTK is a good tool for this job
 
-### more about the strategies
+### More about the Markov Chain strategies
 
 * `crude` is home grown, mainly serving as a reference implementation
 * third party
@@ -227,7 +227,11 @@ For both PyMarkovChainFork and 'crude', there is full unicode support, as well a
 mixed encodings. Because we can't be too choosy with found-text! You **can** hit issues with NLTK, but they should
 not be common now. Please file an issue if you hit one.
 
-### known limitations
+### More about the `tokenizers` and `joiners`
+
+Just try them out ;-) And try adding your own! Pull requests are very welcome.
+
+### Known limitations
 
 * **`markovify` has awesome features we're missing out on.** These were disabled to reduce scope at first, but it'd
 be really nice to get these integrated well (especially if it could be done in a mix-and-match way)
@@ -243,7 +247,7 @@ left-to-right should work, especially if you can boil down the punctuation to AS
     * If using with a language besides English, that's awesome, please file issues if you hit any. `nltk` can probably
     support what you want, but surely we have to iron out some kinks
 
-### development & exploration
+### Development & exploration
 
 * Run tests with pytest (`py.test` in this directory).
 * Run tests of supported Python versions, from clean slate, with tox (`tox` in this directory). Currently just Python 2.7
