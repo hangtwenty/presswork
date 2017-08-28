@@ -1,5 +1,5 @@
-[![Test Coverage](https://codeclimate.com/github/hangtwenty/presswork/badges/coverage.svg)](https://codeclimate.com/github/hangtwenty/presswork/coverage)
-[![Code Climate](https://codeclimate.com/github/hangtwenty/presswork/badges/gpa.svg)](https://codeclimate.com/github/hangtwenty/presswork)
+[![Build Status](https://travis-ci.org/hangtwenty/presswork.svg?branch=master)](https://travis-ci.org/hangtwenty/presswork) 
+[![Code Climate](https://codeclimate.com/github/hangtwenty/presswork/badges/gpa.svg)](https://codeclimate.com/github/hangtwenty/presswork) [![Test Coverage](https://codeclimate.com/github/hangtwenty/presswork/badges/coverage.svg)](https://codeclimate.com/github/hangtwenty/presswork/coverage)
 
 
 ## presswork
