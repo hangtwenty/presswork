@@ -61,7 +61,6 @@ def crude_markov_chain(sentences_as_word_lists, ngram_size=constants.DEFAULT_NGR
             try:
                 next_word = words_with_padding[i + ngram_size]
             except IndexError:  # pragma: no cover
-                # (This fallback should no longer be necessary, but leaving it anyways; it is not *in*correct.)
                 next_word = END_SYMBOL
 
             if model.get(ngram, None) is None:
@@ -71,26 +70,12 @@ def crude_markov_chain(sentences_as_word_lists, ngram_size=constants.DEFAULT_NGR
                 model[ngram].append(next_word)
 
     if logger.level == logging.DEBUG:  # pragma: no cover
-        # noinspection PyBroadException  # (This is a case where broad exception-catch makes sense)
         try:
             logger.debug(u'model=\n{}'.format(pprint.pformat(model, width=2)))
         except:
             logger.exception(u'hit exception while attempting to dump the model to debug-log. swallowing')
 
     return model
-
-
-def is_empty_model(model):
-    """ Returns True if model is 'empty'
-    """
-    if not model:
-        return True
-
-    if len(model.keys()) == 1:
-        # i.e. {('', ..): ['', ..]} (when input is empty string we get this model, and it is best to short-circuit)
-        return True
-
-    return False
 
 
 def iter_make_sentences(
@@ -149,6 +134,19 @@ def iter_make_sentences(
             _per_sentence_loop_counter += 1
 
     raise StopIteration()
+
+
+def is_empty_model(model):
+    """ Returns True if model is 'empty'
+    """
+    if not model:
+        return True
+
+    if len(model.keys()) == 1:
+        # i.e. {('', ..): ['', ..]} (when input is empty string we get this model, and it is best to short-circuit)
+        return True
+
+    return False
 
 
 def ngram_for_sentence_start(ngram_size):

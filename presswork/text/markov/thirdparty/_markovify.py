@@ -32,7 +32,7 @@ class MarkovifyLite(markovify.Text):
             Assumption - these should be sentence-tokenized & word-tokenized before passing to here.
             in text_makers module there will be a wrapper that does just that.
         """
-        # XXX not calling super(); markovify.Text constructor does some things we don't want to do.
+        # NOTE: not calling super(); markovify.Text constructor does some things we don't want to do.
         # Overriding, satisfying same needs, but adapting to our purposes
 
         if input_text:

@@ -83,7 +83,7 @@ class StrFromFilename(str):
         return instance
 
 
-@pytest.fixture(params=fixtures.FILENAMES_NEWLINES)
+@pytest.fixture(params=fixtures.FILENAMES_ALL)
 def text_any(request):
     """ fixture returns 1 string, loaded from *any* of the plaintext file filxtures (1 at a time/ parametrized)
     """
@@ -96,22 +96,6 @@ def text_newlines(request):
     """ fixture returns 1 string, loaded from appropriate plaintext file (1 at a time/ parametrized)
 
     newlines ~= "mostly" newlines, actually - not purely
-    """
-    filename = request.param
-    return StrFromFilename.load_from_filename(filename)
-
-
-@pytest.fixture(params=fixtures.FILENAMES_PROSE)
-def text_prose(request):
-    """ fixture returns 1 string, loaded from appropriate plaintext file (1 at a time/ parametrized)
-    """
-    filename = request.param
-    return StrFromFilename.load_from_filename(filename)
-
-
-@pytest.fixture(params=fixtures.FILENAMES_MIXED)
-def text_mixed(request):
-    """ fixture returns 1 string, loaded from appropriate plaintext file (1 at a time/ parametrized)
     """
     filename = request.param
     return StrFromFilename.load_from_filename(filename)
