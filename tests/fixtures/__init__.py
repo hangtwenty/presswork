@@ -17,10 +17,10 @@ def get_abs_path_to_files_in_subfolder(subfolder, parent_folder=os.path.join(HER
 
 
 FILENAMES_NEWLINES = get_abs_path_to_files_in_subfolder('newlines')
-FILENAMES_PROSE = get_abs_path_to_files_in_subfolder('prose')
-FILENAMES_MIXED = get_abs_path_to_files_in_subfolder('mixed')
 
-FILENAMES_ALL = FILENAMES_NEWLINES + FILENAMES_PROSE + FILENAMES_MIXED
+FILENAMES_ALL = FILENAMES_NEWLINES + [
+    # nice-to-have: add more
+]
 
 if __name__ == "__main__":
     # need to troubleshoot? just run this directly i.e. `python tests/fixtures`, that'll help
