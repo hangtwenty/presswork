@@ -57,6 +57,9 @@ with codecs.open(os.path.join(HERE, 'requirements_dev.txt'), encoding='utf-8') a
 _required_nltk_corpora = [
     'punkt',
     'treebank',
+
+    # required by MosesDetokenizer - 'misc/perluniprops' aka 'perluniprops'
+    'perluniprops'
 ]
 
 class InstallWithNLTKCorpora(SetuptoolsInstallCommand):
@@ -78,10 +81,10 @@ class InstallWithNLTKCorpora(SetuptoolsInstallCommand):
 
 setup(
     name='presswork',
-    version='0.2.5',
-    description="Instant gratification sandbox for text generation using Markov Chains. "
+    version='0.3.1',
+    description="A workbench for text generation using Markov Chains. "
                 "A little Flask app (only for local use), and a CLI that supports piping. "
-                "Comes with a couple of Markov Chain implementations - pluggable. Have fun!",
+                "Pluggable pieces, various extension points. Have fun!",
     long_description=readme,
     author="Michael Floering",
     author_email='michael.floering@gmail.com',
@@ -109,9 +112,6 @@ setup(
     tests_require=test_requirements,
     setup_requires=setup_requirements,
 
-    #----------------------------------------------------------------------------------
-    # less-common things (not just boilerplate, has to do with this specific project):
-    #----------------------------------------------------------------------------------
     cmdclass={
         'install': SetuptoolsInstallCommand,
         'install_with_nltk_corpora': InstallWithNLTKCorpora,

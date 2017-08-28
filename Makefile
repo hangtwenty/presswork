@@ -56,6 +56,9 @@ test: ## run tests quickly with the default Python
 test-tox: ## run tests in virtualenv(s) and/or with different python versions, with tox
 	tox
 
+run-app: ## convenience helper to run the app in debug mode
+	DEBUG=1 python presswork/flask_app/app.py 5000
+
 coverage: ## check code coverage quickly with the default Python
 	coverage run --source presswork -m pytest
 	coverage report -m

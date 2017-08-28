@@ -27,8 +27,9 @@
 
     {% if generated_text %}
     <h4 id="generated-text-title">{{ generated_text_title }}</h4>
-    <div id="generated-text-body">
-      {{ generated_text | newlines_to_br | tabs_to_nbsp }}
+    <div id="generated-text-body" style="white-space: pre-wrap;">
+      {# css of 'white-space: pre-wrap;' gets us whitespace preservation like pre tag, w/o turning off escaping, and w/o dodgy filters -#}
+      {{ generated_text }}
     </div>
     {% endif %}
   </div>
@@ -52,7 +53,7 @@
       <div class="form-group">
         {{ form.input_text.label }}
         <textarea class="form-control" rows="20" id="input_text"
-                  name="text">{{ form.input_text.default if form.input_text.default }}</textarea>
+                  name="input_text">{{ form.input_text.default if form.input_text.default }}</textarea>
       </div>
       <div class="form-group">
         {{ macros.form_field(form.ngram_size) }}
@@ -63,6 +64,7 @@
       <div class="form-group">
         {{ macros.form_field(form.text_maker_strategy) }}
         {{ macros.form_field(form.tokenizer_strategy) }}
+        {{ macros.form_field(form.joiner_strategy) }}
       </div>
       {{ form.csrf_token }}
       <button type="submit" class="btn btn-default">Submit</button>

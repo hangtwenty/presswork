@@ -38,8 +38,9 @@ END_SYMBOL = u""
 
 def crude_markov_chain(sentences_as_word_lists, ngram_size=constants.DEFAULT_NGRAM_SIZE, ):
     """ Build a Markov Chain model of sentences, words. Bare-essentials/crude implementation
+
     :param sentences_as_word_lists: list of lists of words/tokens. i.e. expects already-tokenized text.
-        [ [word, word, ...], [word, word, ...], ... ].
+        like [ [word, word, ...], [word, word, ...], ... ]
     :param ngram_size: the N in N-gram, AKA state size or window size. same as in general markov chains.
         2 or 3 are commonly used for text generation. higher than that can
     :return: a dict: { n-gram : [ possibility, possibility ...], ... }. Feed this to iter_make_sentences
@@ -63,13 +64,14 @@ def crude_markov_chain(sentences_as_word_lists, ngram_size=constants.DEFAULT_NGR
                 # (This fallback should no longer be necessary, but leaving it anyways; it is not *in*correct.)
                 next_word = END_SYMBOL
 
-            # Re: memory usage -- see note in module docstring. (left unoptimized)
             if model.get(ngram, None) is None:
                 model[ngram] = [next_word]
             else:
+                # Re: memory usage -- see note in module docstring. (left unoptimized)
                 model[ngram].append(next_word)
 
     if logger.level == logging.DEBUG:  # pragma: no cover
+        # noinspection PyBroadException  # (This is a case where broad exception-catch makes sense)
         try:
             logger.debug(u'model=\n{}'.format(pprint.pformat(model, width=2)))
         except:
@@ -79,7 +81,7 @@ def crude_markov_chain(sentences_as_word_lists, ngram_size=constants.DEFAULT_NGR
 
 
 def is_empty_model(model):
-    """ Returns True if model is 'empty' (what results if input is just empty string or whitespace)
+    """ Returns True if model is 'empty'
     """
     if not model:
         return True
@@ -94,26 +96,27 @@ def is_empty_model(model):
 def iter_make_sentences(
         crude_markov_model, ngram_size=constants.DEFAULT_NGRAM_SIZE, count=100, max_loops_per_sentence=25):
     """ The fun part! Generate probable sentences based on a model. Bare-essentials/crude implementation.
+
     :param crude_markov_model: a model i.e. from crude_markov_chain() function
     :param ngram_size: N in N-gram, AKA state size or window size. same as elsewhere. must match ngram size of model.
     :return: (generator) yields lists-of-words.
     """
+    if is_empty_model(crude_markov_model):
+        logger.debug(u'is_empty_model({!r}) => True, short-circuit & return empty sentence'.format(crude_markov_model))
+        yield []
+        raise StopIteration()
+
+    _model_ngram_size = len(crude_markov_model.keys()[0])
+    if _model_ngram_size != ngram_size:
+        logger.error(u"make_sentences ngram_size={}, but model ngram_size={!r}".format(ngram_size, _model_ngram_size))
+        raise ValueError(u"ngram_size must match ngram_size of model.")
+
     current_ngram = None
     sentence = []
     end_sentence = False
 
     _sentences_counter = 0
     _per_sentence_loop_counter = 0
-
-    if is_empty_model(crude_markov_model):
-        logger.debug(u'is_empty_model({!r}) => True, short-circuit & return empty sentence'.format(crude_markov_model))
-        yield sentence
-        raise StopIteration()
-
-    _model_ngram_size = len(crude_markov_model.keys()[0])
-    if _model_ngram_size != ngram_size:
-        logger.error(u"make_sentences ngram_size={}, but model ngram_size={!r}".format(ngram_size, _model_ngram_size))
-        raise ValueError(u"ngram_size for make_sentences must match ngram_size of model.")
 
     while _sentences_counter < count:
         logger.debug(u'current sentence = {}, i (sentence#) = {}, per_sentence_loop_counter={}'.format(
@@ -132,7 +135,6 @@ def iter_make_sentences(
             end_sentence = True
 
         if _per_sentence_loop_counter >= max_loops_per_sentence:
-            # also a fallback if sentence is going on too long (infinite loops are possible otherwise)
             end_sentence = True
 
         if end_sentence:

@@ -38,6 +38,7 @@ Truthfully
 
 input_text = "\n".join(["Colorless green ideas sleep {}".format(end) for end in ends])
 
+
 @pytest.mark.slow
 @pytest.mark.parametrize('ngram_size', range(2, 6))
 def test_benchmarks(each_text_maker, ngram_size, benchmark):

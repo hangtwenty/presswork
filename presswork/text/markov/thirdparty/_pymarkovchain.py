@@ -76,12 +76,12 @@ class PyMarkovChainForked(object):
         self.db = None
         self.db_file_path = db_file_path
         if self.db_file_path is not None:
-            self.load_db_pickle_from_filepath()
+            self.db_load()
 
         if self.db is None:
             self.db = _db_factory()
 
-    def load_db_pickle_from_filepath(self):
+    def db_load(self):
         warnings.warn("Features of PyMarkovChainFork managing its own persistence are deprecated.")
         if self.db_file_path:
             try:
@@ -100,7 +100,7 @@ class PyMarkovChainForked(object):
     def increment_words(self, words):
         self.db[self._special_ngram][words[0]] += 1
 
-    def database_init(self, sentences_as_word_lists):
+    def markov_chain(self, sentences_as_word_lists):
         """ Generate word probability database from raw content string """
 
         # (Comment from original:) using the database to temporarily store word counts
@@ -132,18 +132,13 @@ class PyMarkovChainForked(object):
                 for nextword in self.db[word]:
                     self.db[word][nextword] /= wordsum
 
-    def database_dump(self):
+    def db_dump(self):
         warnings.warn("Features of PyMarkovChainFork managing its own persistence are deprecated.")
-        try:
-            with open(self.db_file_path, 'wb') as dbfile:
-                pickle.dump(self.db, dbfile)
-            # It looks like db was written successfully
-            return True
-        except IOError:
-            logging.warn('Database file could not be written')
-            return False
+        with open(self.db_file_path, 'wb') as dbfile:
+            pickle.dump(self.db, dbfile)
+        return True
 
-    def database_clear(self):
+    def db_clear(self):
         warnings.warn("Features of PyMarkovChainFork managing its own persistence are deprecated.")
         os.unlink(self.db_file_path)
 
@@ -157,7 +152,7 @@ class PyMarkovChainForked(object):
         return sentences
 
     def _generate_sentence_as_list(self, seed):
-        """ Accumulate the generated sentence with a given single word as a seed """
+        """ (Comment from original:) Accumulate the generated sentence with a given single word as a seed """
         next_word = self._next_word(seed)
         sentence = list(seed) if seed else []
         while next_word:
@@ -189,5 +184,5 @@ class PyMarkovChainForked(object):
                 sample -= probmap[candidate]
             else:
                 return candidate
-        # getting here means we haven't found a matching word. :(
+        # (Comment from original:) getting here means we haven't found a matching word. :(
         return maxprobword

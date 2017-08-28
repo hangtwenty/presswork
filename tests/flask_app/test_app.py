@@ -4,8 +4,9 @@
 import bs4
 import pytest
 
-from presswork.sanitize import SanitizedString
-from presswork.text import grammar
+from presswork.text import text_makers
+from presswork.text.grammar import joiners
+from presswork.text.grammar import tokenizers
 from tests import helpers
 
 
@@ -41,43 +42,49 @@ def test_index_submit_deterministic(testapp):
         "test self-check failed, this should be all unique words"
 
     response = testapp.post('/', data=dict(
-            input_text=input_text * 10000,
+            input_text=input_text * 10000,  # why not submit it kinda big
             text_maker_strategy='crude',
-            tokenizer_strategy='whitespace',
+            tokenizer_strategy='just_whitespace',
+            joiner_strategy='just_whitespace',
             ngram_size=2,
             count_of_sentences_to_make=100,
     ))
     assert response.status_code == 200
 
     generated_text = _get_the_generated_text_from_exact_html_element(response)
-    assert input_text in generated_text
 
+    # assert *entire* input in generated text, for this case
+    assert input_text in generated_text, "input was a sequence of unique words, we would expect only one possible " \
+                                         "output, and we'd expect to find input text exactly"
     assert "ensure test is valid - this is not in the response data" not in generated_text
 
 
-@pytest.mark.parametrize('ngram_size', range(2, 4))
-@pytest.mark.parametrize('tokenizer_strategy', ['whitespace', 'nltk', 'markovify'])
-@pytest.mark.parametrize('text_maker_strategy', ['crude', 'pymc', 'markovify'])
-def test_index_submit_thorough(testapp, tokenizer_strategy, text_maker_strategy, ngram_size, text_any):
+@pytest.mark.parametrize('ngram_size', [2, 3])
+@pytest.mark.parametrize('tokenizer_strategy', tokenizers.TOKENIZER_NICKNAMES)
+@pytest.mark.parametrize('joiner_strategy', joiners.JOINER_NICKNAMES)
+@pytest.mark.parametrize('text_maker_strategy', text_makers.TEXT_MAKER_NICKNAMES)
+def test_index_submit_thorough(testapp, tokenizer_strategy, joiner_strategy, text_maker_strategy, ngram_size, text_any):
     """ Tests a submission of various fixtures and various parameters"""
     input_text = text_any
     response = testapp.post('/', data=dict(
             input_text=input_text,
             text_maker_strategy=text_maker_strategy,
             tokenizer_strategy=tokenizer_strategy,
+            joiner_strategy=joiner_strategy,
             ngram_size=ngram_size,
 
-            count_of_sentences_to_make=10,
+            count_of_sentences_to_make=200,
     ))
     assert response.status_code == 200
 
-    generated_text = _get_the_generated_text_from_exact_html_element(response)
+    output_text = _get_the_generated_text_from_exact_html_element(response)
 
-    _tokenizer = grammar.create_sentence_tokenizer(tokenizer_strategy)
-    comparison = helpers.WordSetComparison(
-            generated_tokens=_tokenizer.tokenize(generated_text),
-            input_tokenized=_tokenizer.tokenize(SanitizedString(input_text)))
-    assert comparison.output_is_subset_of_input
+    comparison = helpers.FrontendWordSetComparison.create(
+            generated_text=output_text,
+            input_text=input_text,
+            tokenizer=tokenizers.create_sentence_tokenizer(tokenizer_strategy))
+
+    assert comparison.output_is_mostly_valid(tolerance=(1.15 / 100), phantoms_allowed=2)
 
 
 def _get_the_generated_text_from_exact_html_element(response):
@@ -92,6 +99,10 @@ def _get_the_generated_text_from_exact_html_element(response):
     generated_text_element = response_markup.find(id="generated-text-body")
     assert generated_text_element
 
+    if generated_text_element is None:
+        raise ValueError("response has no element with id=generated-text-body. invalid form submission? "
+                         "did you add a field to the form and forget to add it to the test cases?")
+
     generated_text = generated_text_element.get_text(separator="\n\n")
     assert len(generated_text.strip()) > 1
 
@@ -103,18 +114,31 @@ def test_invalid_strategies_chosen(testapp):
     response = testapp.post('/', data=dict(
             input_text="yada yada",
             text_maker_strategy="pymc",  # valid
-            tokenizer_strategy="whitespace",  # valid
-            ngram_size=2,
+            tokenizer_strategy="just_whitespace",  # valid
+            joiner_strategy='just_whitespace',  # valid
+            ngram_size="2",
             count_of_sentences_to_make=1,
     ))
-    assert not "warning" in response.data, "self-check failed, test case cannot proceed"
+    assert not ("warning" in response.data), "self-check failed, test case cannot proceed"
+
+    # valid - should not be case sensitive
+    response = testapp.post('/', data=dict(
+            input_text="yada yada",
+            text_maker_strategy="PyMc",  # valid
+            tokenizer_strategy="Just_Whitespace",  # valid
+            joiner_strategy='Just_Whitespace',  # valid
+            ngram_size="2",
+            count_of_sentences_to_make=1,
+    ))
+    assert not ("warning" in response.data), "self-check failed, test case cannot proceed"
 
     # invalid
     response = testapp.post('/', data=dict(
             input_text="yada yada",
             text_maker_strategy="pymc",  # valid
+            joiner_strategy='just_whitespace',  # valid
             tokenizer_strategy="invalid",  # invalid
-            ngram_size=2,
+            ngram_size="2",
             count_of_sentences_to_make=1,
     ))
 
@@ -124,8 +148,9 @@ def test_invalid_strategies_chosen(testapp):
     response = testapp.post('/', data=dict(
             input_text="yada yada yada",
             text_maker_strategy="invalid",  # invalid
-            tokenizer_strategy="whitespace",  # valid
-            ngram_size=2,
+            tokenizer_strategy="just_whitespace",  # valid
+            joiner_strategy='just_whitespace',  # valid
+            ngram_size="2",
             count_of_sentences_to_make=1,
     ))
 
@@ -135,8 +160,21 @@ def test_invalid_strategies_chosen(testapp):
     response = testapp.post('/', data=dict(
             input_text="yada yada yada",
             text_maker_strategy="invalid",  # valid
-            tokenizer_strategy="whitespace",  # valid
-            ngram_size="\x02",
+            tokenizer_strategy="just_whitespace",  # valid
+            joiner_strategy='just_whitespace',  # valid
+            ngram_size="\x02",  # invalid
+            count_of_sentences_to_make=1,
+    ))
+
+    assert "warning" in response.data
+
+    # invalid
+    response = testapp.post('/', data=dict(
+            input_text="yada yada yada",
+            text_maker_strategy="invalid",  # valid
+            tokenizer_strategy="just_whitespace",  # valid
+            joiner_strategy='invalid',  # invalid
+            ngram_size=8,  # valid
             count_of_sentences_to_make=1,
     ))
 

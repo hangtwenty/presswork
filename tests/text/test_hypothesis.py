@@ -31,4 +31,4 @@ def test_hypothesis_text(s, each_text_maker):
     sentences = text_maker.make_sentences(300)
 
     word_set_comparison = helpers.WordSetComparison(generated_tokens=sentences, input_tokenized=_input_tokenized)
-    assert word_set_comparison.output_is_subset_of_input
+    assert word_set_comparison.output_is_valid_strict()
