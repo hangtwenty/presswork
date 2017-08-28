@@ -197,9 +197,11 @@ presswork/text/text_makers.py                          128      0   100%
 presswork/utils.py                                       9      0   100%
 ----------------------------------------------------------------------------------
 TOTAL                                                  654      3    99%
+#...
+===================== 890 passed, 4 warnings in 138.25 seconds ======================
 ```
 
-(About ~50 lines are excluded from coverage (`# pragma: nocover`). So with those included it'd be about 92%.)
+(890 tests!? Well, they're [parametrized with py.test.](https://docs.pytest.org/en/latest/parametrize.html) About ~50 lines are excluded from coverage (`# pragma: nocover`). So with those included it'd be about 92%.)
 
 ## miscellaneous
 
