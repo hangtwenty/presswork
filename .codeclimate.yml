@@ -1,6 +1,0 @@
-engines:
-  fixme:
-    enabled: true
-    checks:
-      XXX:  # I don't use this to mean "caution," I just use it to me "lookit"
-        enabled: false

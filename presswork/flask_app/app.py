@@ -39,7 +39,7 @@ class MarkovChainTextMakerForm(FlaskForm):
     count_of_sentences_to_make = IntegerField(
             "Number of sentences to generate", [validators.NumberRange(min=1, max=3000)], default=50, )
 
-    # XXX really this should be a SelectField but WTForms was being difficult and I want to handle other things first.
+    # NOTE: really this should be a SelectField but WTForms was being difficult and I want to handle other things first.
     text_maker_strategy = StringField(
             "Markov Chain Strategy | choices: {} | markovify is first preference, pymc second. ".format(
                     ", ".join(text_makers.TEXT_MAKER_NICKNAMES)),
