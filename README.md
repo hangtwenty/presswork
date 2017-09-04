@@ -154,15 +154,15 @@ especially before the dust settles on the design.
 
 ### Setup
 
-1. Grab this GitHub repository and `cd` in. (Not on PyPI because it's not utilitarian.)
-2. Create & activate your [virtualenv](https://virtualenv.pypa.io/en/latest/)
-3. install
+1. Grab this repo (withheld from PyPI for now, because it is not utilitarian)
+2. [virtualenv](https://virtualenv.pypa.io/en/latest/)
+3. Install
     - **quick:** **`make install`**. This will do `pip install`, then also install NLTK corpora dependencies.
     - or **custom:**
         1. `pip install .` to install `presswork` plus dependencies. (or `pip install -e .` for editable/development mode.)
         2. Download required [NLTK](http://www.nltk.org/) corpora.
             * `python setup.py install_with_nltk_corpora`
-            * (If you need to change where the NLTK corpora install to, set `NLTK_DATA` (more info in `setup.py`))
+            * NLTK allows you to change the corpora directory by setting `NLTK_DATA` (defaults are fine for most users though)
 
 
 ----------------
