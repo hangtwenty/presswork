@@ -186,22 +186,23 @@ presswork/text/__init__.py                               0      0   100%
 presswork/text/clean.py                                 49      1    98%   79
 presswork/text/grammar/__init__.py                       3      0   100%
 presswork/text/grammar/containers.py                    31      0   100%
-presswork/text/grammar/joiners.py                       70      0   100%
-presswork/text/grammar/tokenizers.py                    66      0   100%
+presswork/text/grammar/joiners.py                       72      1    99%   107
+presswork/text/grammar/tokenizers.py                    72      4    94%   42, 45, 70, 87
 presswork/text/markov/__init__.py                        0      0   100%
-presswork/text/markov/_crude_markov.py                  66      0   100%
+presswork/text/markov/_crude_markov.py                  73      6    92%   63-64, 73-76
 presswork/text/markov/thirdparty/__init__.py             0      0   100%
 presswork/text/markov/thirdparty/_markovify.py          23      0   100%
-presswork/text/markov/thirdparty/_pymarkovchain.py      96      0   100%
-presswork/text/text_makers.py                          128      0   100%
+presswork/text/markov/thirdparty/_pymarkovchain.py     100      1    99%   168
+presswork/text/text_makers.py                          130      2    98%   135, 166
 presswork/utils.py                                       9      0   100%
 ----------------------------------------------------------------------------------
-TOTAL                                                  654      3    99%
+TOTAL                                                  675     17    97%
 #...
-===================== 890 passed, 4 warnings in 138.25 seconds ======================
+=================== 1137 passed, 4 warnings in 497.41 seconds ====================
 ```
 
-(890 tests!? Well, they're [parametrized with py.test.](https://docs.pytest.org/en/latest/parametrize.html) About ~50 lines are excluded from coverage (`# pragma: nocover`). So with those included it'd be about 92%.)
+(1137 tests!? Well, they're [parametrized with py.test.](https://docs.pytest.org/en/latest/parametrize.html)
+Many combinations of parameters are tested.)
 
 ## Miscellaneous
 
