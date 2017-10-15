@@ -134,20 +134,6 @@ def _test_self_ensure_test_would_fail_if_comparison_was_invalid(generated_tokens
     return True
 
 
-def test_sentence_starts_are_special(each_text_maker, text_newlines):
-    """ rules of markov chains for text gen, as these 3 strategies do it anyways - sentence starts are special
-
-    (in a very early version this rule got violated for a bit, so this is a regression test)
-    """
-    tm = each_text_maker
-    input_tokenized = tm.input_text(text_newlines)
-    gen_sentences = tm.make_sentences(100)
-    gen_starts = [filter(None, sentence)[0] for sentence in gen_sentences]
-    input_starts = [filter(None, sentence)[0] for sentence in input_tokenized]
-    for start in gen_starts:
-        assert start in input_starts
-
-
 # ------------------------------------------------------------------------------------------------
 # Following tests are more about avoiding usage issues (more than properties of the text making)
 # ================================================================================================
