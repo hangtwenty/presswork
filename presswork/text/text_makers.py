@@ -132,7 +132,7 @@ class BaseTextMaker(object):
             (Fun fact: The `set()` of tokens generated, will be a subset of the tokens from the input.)
         :rtype: presswork.text.grammar.containers.SentencesAsWordLists
         """
-        return NotImplementedError()  # pragma: no cover
+        return NotImplementedError()
 
     def input_text(self, input_text):
         """ build a fresh model from input text. (does not generate text - call make_sentences() to generate text.)
@@ -163,7 +163,7 @@ class BaseTextMaker(object):
         :param sentences_as_word_lists: list of lists. SentencesAsWordLists, or anything that quacks like that.
             typically passed in from self.sentence_tokenizer.tokenize()
         """
-        raise NotImplementedError()  # pragma: no cover
+        raise NotImplementedError()
 
     def join(self, sentences_as_word_lists):
         """ join back together to a string. convenience method, that simply forwards to `self.joiner.join()`

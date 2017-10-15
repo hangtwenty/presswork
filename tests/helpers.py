@@ -15,7 +15,7 @@ class WordSetComparison(object):
 
     Helps to check on a property of (our) markov-chain-text-generators: output words are a subset of input words.
 
-    Refactored to a method-object for pragmatic reasons: w/ py.test, we have this great ability to showlocals
+    Refactored to a method-object for pragmatic reasons: w/ py.test, we have this great option to --showlocals
      when something goes wrong, and/or to drop into debugger. more instant gratification if the whole scope of
      this comparison is "there" in the test case scope too. (have confirmed, it is nice to debug with, this way.)
 

@@ -39,9 +39,9 @@ class BaseWordTokenizer(object):
         :type text: basestring
         :rtype: presswork.text.grammar.containers.WordList
         """
-        raise NotImplementedError()  # pragma: no cover
+        raise NotImplementedError()
 
-    def __repr__(self):  # pragma: no cover
+    def __repr__(self):
         return "{}()".format(self.__class__.__name__)
 
 
@@ -67,7 +67,7 @@ class BaseSentenceTokenizer(object):
         (this shouldn't depend on word_tokenizer)
         :rtype: list
         """
-        raise NotImplementedError()  # pragma: no cover
+        raise NotImplementedError()
 
     @property
     def word_tokenizer(self):
@@ -83,7 +83,7 @@ class BaseSentenceTokenizer(object):
     def word_tokenizer(self, word_tokenizer):
         self._word_tokenizer = word_tokenizer
 
-    def __repr__(self):  # pragma: no cover
+    def __repr__(self):
         return "{}(word_tokenizer={!r})".format(self.__class__.__name__, self.word_tokenizer)
 
 
