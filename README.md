@@ -4,15 +4,16 @@
 
 ## presswork
 
-A workbench for generative text. For now, it's all about [Markov](https://blog.codinghorror.com/markov-and-you/)
-[Chains](https://en.wikipedia.org/wiki/Markov_chain). Given a bunch of text, generate "probable" sentences based
-on those models.
+A workbench for generative text!
+
+So far, it's all about [Markov](https://blog.codinghorror.com/markov-and-you/)
+[Chains](https://en.wikipedia.org/wiki/Markov_chain). [Here's a great visual explanation of Markov Chains.](http://setosa.io/blog/2014/07/26/markov-chains/index.html) Given a bunch of text, model it, and generate "probable" new sentences.
 
 Currently offers:
 
 * **CLI** for piping in found text, piping out generated text (could be used with other tools)
 * **Flask app** for jamming with text (for local usage)
-* Python code
+* **Python toolkit**
     * The text generation tools, broken down for mix and match (composite reuse)
 
 I'd like to add other tools to the toolkit, building off of this foundation.
@@ -84,13 +85,13 @@ what else could we "pipe" it through?
         and choose rhyming words
 
 
-### It's not there yet!
+### This is undercooked! See also...
 
 This is undercooked! It's not on PyPI because you should only use it if you're cloning it, and getting your hands dirty.
 (If you end up enjoying it, or extending it, please get in touch! File issues! Etc! Cheers.)
 
 For a great Markov Chain text generation **library**,
- use [`markovify`](https://github.com/jsvine/markovify). (It's one of the libs used here.)
+ use [`markovify`](https://github.com/jsvine/markovify). (`markovify` is used in the default text generation strategy here.)
 
 ----
 
