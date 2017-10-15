@@ -13,7 +13,7 @@ Currently offers:
 * **CLI** for piping in found text, piping out generated text (could be used with other tools)
 * **Flask app** for jamming with text (for local usage)
 * Python code
-    * Text generation is broken down into separate concerns. Bias towards composite reuse (mix and match).
+    * The text generation tools, broken down for mix and match (composite reuse)
 
 I'd like to add other tools to the toolkit, building off of this foundation.
 
@@ -80,8 +80,8 @@ following some more structured rules?
 * we avoid joining back to text until final display. while the data is still structured (as sentences and words),
 what else could we "pipe" it through?
     * various ways to `map()` and `filter()` the stream of generated sentences and words
-    * various ways to swap out certain words before output, i.e. use NLTK WordNet to find synonyms, and choose one that rhymes
-        with something recently output
+    * various ways to swap out some words words before output. For example, use NLTK WordNet to find synonyms, 
+        and choose rhyming words
 
 
 ### It's not there yet!
@@ -96,8 +96,9 @@ For a great Markov Chain text generation **library**,
 
 ## How
 
-Overall usage note - it can be maddening to get the models Just Right to always make great output.
-What I prefer: continually generate things, skim, and copy out the highlights to an editor.
+Usage _style_ note: it's tough to create the perfect recipe of inputs to get great outputs every time,
+unedited. What I do: generate repeatedly, skim-read, and copy out my favorite parts to another buffer.
+ Then revise.
 
 ### Flask app usage
 
@@ -128,8 +129,7 @@ The short of it:
 * Everything has sane/ "preferred" defaults
 * But it mostly uses Composite Reuse to let you customize, mix and match
 
-There are loads of docstrings and doc tests, and it's probably not useful to demonstrate everything here,
-especially before the dust settles on the design.
+There are loads of docstrings and doc tests, which demonstrate usage of more parts. Here is a quick rundown.
 
     >>> from presswork.text_makers import create_text_maker
     >>> text_maker = create_text_maker(input_text=text, ngram_size=3)
@@ -206,8 +206,8 @@ Many combinations of parameters are tested.)
 
 ## Miscellaneous
 
-* It's got pretty good support for Unicode and **mixed encodings** too. This is very crucial for found text
-* By default, it leverages NLTK for tokenization and de-tokenization. NLTK is a good tool for this job
+* It's got pretty good support for Unicode and **mixed encodings** too. This is very crucial for found text.
+* By default, it leverages NLTK for tokenization and de-tokenization. NLTK is a good default tool for this job.
 
 ### More about the Markov Chain strategies
 
@@ -234,19 +234,17 @@ Just try them out ;-) And try adding your own! Pull requests are very welcome.
 
 ### Known limitations
 
-* **`markovify` has awesome features we're missing out on.** These were disabled to reduce scope at first, but it'd
-be really nice to get these integrated well (especially if it could be done in a mix-and-match way)
+* **`markovify` has awesome features we're not exposing yet.** I disabled these at first to reduce scope, but it'd
+be nice to get these integrated well.
     * [weighted combination of models](https://github.com/jsvine/markovify#combining-models),
         you can make it so texts don't "win" just by length
     * [automatically filtering sentences to choose novel, new ones](https://github.com/jsvine/markovify/blob/4880754989a7bab272745340a11a2ba165c1216b/markovify/text.py#L116-L122)
 * Input & output 'cleaning' both are off to a good start, but need more work. There's definitely "cruft" in the output
 * No persistence yet. All 3 Markov Strategies could have the model persist on disk, but they each do it
 in a different way. No unified interface for this part, yet
-* Natural language - only tested with English, however similar-structure languages should work. Languages that read
-left-to-right should work, especially if you can boil down the punctuation to ASCII punctuation before passing in.
-(You can leave all your rich Unicode etc in letters, that is supported, but non-ASCII punctuation is not well supported.)
-    * If using with a language besides English, that's awesome, please file issues if you hit any. `nltk` can probably
-    support what you want, but surely we have to iron out some kinks
+* Natural language is limited to English and English-like languages. (Namely, left-to-right reading.)
+    * If using with a language besides English, that's awesome, please file issues as you encounter them. 
+    `nltk` can probably support what you want, but surely we have to iron out some kinks here.
 
 ### Development & exploration
 
