@@ -103,7 +103,7 @@ class Joiner(object):
         """
         return self._sentence_separator
 
-    def __repr__(self):  # pragma: no cover
+    def __repr__(self):
         return "{}(separate_sentences={!r}, separate_words={!r})".format(
                 self.__class__.__name__, self._sentence_separator, self._word_separator)
 

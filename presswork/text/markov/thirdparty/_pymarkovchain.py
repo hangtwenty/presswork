@@ -10,10 +10,9 @@ Forked from PyMarkovChain==1.7.5 MarkovChain class
 Its algorithm is left the (mostly) same, though I did refactor some things after forking.
 
 I originally forked it to bring NLTK into the mix for tokenizing (Original class did not have good extension points.)
-... but now, have hollowed it out further.
+... but now, have hollowed it out further. (NLTK can be used at level above; tokenizing is decoupled now.)
 
-Markovify is preferable for most uses but this implementation is kept here as a contrast or fallback.
-(Since this repo is non-utilitarian anyways. Nice excuse eh!)
+Markovify implementation is preferable for most uses but this implementation is kept here as a contrast or fallback.
 """
 
 from __future__ import division
@@ -87,7 +86,7 @@ class PyMarkovChainForked(object):
             try:
                 with open(self.db_file_path, 'rb') as dbfile:
                     self.db = pickle.load(dbfile)
-            except (IOError, ValueError):  # pragma: no cover
+            except (IOError, ValueError):
                 logging.debug('db_file_path given, but unreadable (not found, or corrupt), using empty database')
 
     @property
@@ -165,9 +164,7 @@ class PyMarkovChainForked(object):
         if last_words != self._special_ngram:
             while last_words not in self.db:
                 last_words = last_words[1:]
-                # I don't feel guilty putting "pragma: no cover" on next line as it is a failsafe;
-                # my tests don't hit it, and maybe it never gets hit, but it's not *in*correct behavior
-                if not last_words:  # pragma: no cover
+                if not last_words:
                     return SPECIAL_TOKEN
         probmap = self.db[last_words]
         sample = random.random()
