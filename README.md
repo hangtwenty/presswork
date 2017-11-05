@@ -97,9 +97,7 @@ For a great Markov Chain text generation **library**,
 
 ## How
 
-Usage _style_ note: it's tough to create the perfect recipe of inputs to get great outputs every time,
-unedited. What I do: generate repeatedly, skim-read, and copy out my favorite parts to another buffer.
- Then revise.
+Workflow note: it's tough to create the perfect recipe of inputs, to get great unedited outputs every time. What I do: generate a lot, skim-read, and copy out my favorite parts to another buffer. Repeat. Revise.
 
 ### Flask app usage
 
